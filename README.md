@@ -81,9 +81,11 @@ Podpořit mě znamená umožnit mi naplno rozvíjet moji značku a projekty, kte
 Podpora je zcela dobrovolná ❤️  
 Pokud chcete pomoci rozvoji projektu a mé další tvorby, můžete využít:
 
-- 📲                     Bankovní QR kód – sekundární účet (CZK, částku si volíte sami)  
-- 💳                     PayPal QR kód – rychlá podpora odkudkoliv  
-- ☕ Ko-fi           [https://ko-fi.com/avv217]
+- 📲 Bankovní QR kód – sekundární účet (CZK, částku si volíte sami)  
+  ![Bankovní QR kód](https://github.com/AVV217/Projekt-Virgil/raw/main/airbank.jpg)
+- 💳 PayPal QR kód – rychlá podpora odkudkoliv  
+  ![PayPal QR kód](https://github.com/AVV217/Projekt-Virgil/raw/main/qr_paypal.png)
+- ☕ Ko-fi [https://ko-fi.com/avv217]
 
 
 Veliké díky všem! 🙏
@@ -122,5 +124,3 @@ aby další nadšenci a „blázni do technologií“ dostali svoji šanci zač�
 ## 🌟 Motto na závěr
 1) Z kruhu se stává cesta.  
 2) To, co dnes vybuduji já, může být zítřejší startovní čára pro další generaci tvůrců.
-
-
