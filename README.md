@@ -82,9 +82,9 @@ Podpora je zcela dobrovolná ❤️
 Pokud chcete pomoci rozvoji projektu a mé další tvorby, můžete využít:
 
 - 📲 Bankovní QR kód – sekundární účet (CZK, částku si volíte sami)  
-  ![Bankovní QR kód](https://github.com/AVV217/Projekt-Virgil/raw/main/airbank.jpg)
+  <img src="https://github.com/AVV217/Projekt-Virgil/raw/main/airbank.jpg" width="150" alt="Bankovní QR kód">
 - 💳 PayPal QR kód – rychlá podpora odkudkoliv  
-  ![PayPal QR kód](https://github.com/AVV217/Projekt-Virgil/raw/main/qr_paypal.png)
+  <img src="https://github.com/AVV217/Projekt-Virgil/raw/main/qr_paypal.png" width="150" alt="PayPal QR kód">
 - ☕ Ko-fi [https://ko-fi.com/avv217]
 
 
