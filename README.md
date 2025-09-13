@@ -132,4 +132,5 @@ aby další nadšenci a „blázni do technologií“ dostali svoji šanci zač�
 
 ## 🌟 Motto na závěr
 1) Z kruhu se stává cesta.  
-2) To, co dnes vybuduji já, může být zítřejší startovní čára pro další generaci tvůrců.
+2) To, co dnes vybudujeme, může být zítřejší startovní čára pro další generaci tvůrců.
+
