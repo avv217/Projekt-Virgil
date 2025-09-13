@@ -121,6 +121,16 @@ aby další nadšenci a „blázni do technologií“ dostali svoji šanci zač�
 
 ---
 
+## ⚖️ License & Disclaimer
+Virgil je vydán pod **MIT licencí**.  
+Používáte jej svobodně – můžete jej šířit, upravovat i využívat komerčně.  
+❗ Součástí MIT licence je i upozornění: projekt je poskytován **„tak jak je“**, bez jakékoliv záruky.  
+Použití je tedy na vlastní riziko.
+
+---
+
+
 ## 🌟 Motto na závěr
 1) Z kruhu se stává cesta.  
 2) To, co dnes vybuduji já, může být zítřejší startovní čára pro další generaci tvůrců.
+
