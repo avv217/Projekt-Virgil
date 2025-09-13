@@ -7,6 +7,13 @@ Virgil je lokální AI asistent, který běží plně na vašem počítači.
 Je rychlý, flexibilní, český a připravený nejen pro školy, instituce a laboratoře.  
 Vznikl z čisté vášně pro technologie – jako další z mých projektů, na kterých pracuji už více než 20 let.
 
+## 🎮 Vyzkoušet demo
+
+Než si stáhnete aplikaci, vyzkoušejte interaktivní demo UI:  
+**[🖥️ Zkusit Virgil Demo](https://avv217.github.io/Projekt-Virgil)**
+
+Demo ukazuje skutečné rozhraní aplikace – můžete klikat na tlačítka, měnit nastavení a vidět, jak aplikace funguje.
+
 ---
 
 ## ✨ Kdo jsem:
