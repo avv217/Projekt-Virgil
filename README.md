@@ -1,5 +1,7 @@
-# 🌟 Virgil – nová větev AI  
+# 🌟 Virgil – nová větev AI
 *✨ Pojďme z toho udělat cestu.*
+
+[![Virgil Screenshot](screen-001.jpg)](screen-001.jpg)
 
 Virgil je lokální AI asistent, který běží plně na vašem počítači.  
 Je rychlý, flexibilní, český a připravený nejen pro školy, instituce a laboratoře.  
