@@ -1,0 +1,154 @@
+<!doctype html><html lang="cs"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+        <h1>🧠 Virgil Tripack v1.4.0</h1><title>Virgil Tripack v1.4.0</title>
+<style>
+:root{color-scheme:dark}body{margin:0;background:#0b0f14;color:#e6f0ff;font-family:system-ui,-apple-system,Segoe UI,Roboto}
+.app{display:grid;grid-template-columns:280px 1fr 340px;height:100vh}
+.sidebar,.rightbar{background:#0e141b;border-right:1px solid #15202b}.rightbar{border-left:1px solid #15202b;border-right:none}
+h2{margin:0;padding:12px 14px;color:#87cbff;font:600 13px/1.2 system-ui;letter-spacing:.12em;text-transform:uppercase}
+.section{padding:12px;border-top:1px solid #15202b}.msgs{height:calc(100vh - 220px);overflow:auto;background:#0b1219;border:1px solid #1b2a37;border-radius:12px;margin:12px;padding:8px}
+.msg{padding:10px 12px;margin:8px;border-radius:10px}.msg.user{background:#132334}.msg.assistant{background:#111a23}
+textarea,input,select{width:100%;background:#0e141b;color:#e6f0ff;border:1px solid #1b2a37;border-radius:10px;padding:10px}
+.btn{background:#0f6abf;border:none;color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer}.row{display:flex;gap:8px;align-items:center}
+.tag{font-size:12px;background:#0f1930;color:#8bd0ff;border:1px solid #1b2a37;padding:4px 8px;border-radius:999px;display:inline-block}
+pre{white-space:pre-wrap}
+.badge{font-size:11px;padding:2px 6px;border-radius:8px;border:1px solid #1b2a37;background:#0f1930;color:#9fd2ff}
+</style></head>
+<body><div class="app">
+<div class="sidebar">
+  <h2>Tripack</h2>
+  <div class="section">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div><span class="badge">UI</span> <span id="uiVer"></span></div>
+      <div><span class="badge">LLM</span> <span id="llmMode">stub</span></div>
+    </div>
+  </div>
+  <div class="section">
+    <label>LLM model</label><select id="model"></select>
+  </div>
+  <div class="section">
+    <label>Režim</label><select id="mode"><option>Airplane</option><option selected>Local only</option><option>Online allowed</option></select>
+  </div>
+  <div class="section">
+    <button class="btn" onclick="health()">Kontrola závislostí</button>
+    <pre id="healthOut" style="font-size:12px;margin-top:8px"></pre>
+  </div>
+</div>
+<div>
+  <div class="msgs" id="msgs"></div>
+  <div class="section"><div class="row">
+    <textarea id="input" placeholder="Napiš dotaz… (Enter = odeslat, Shift+Enter = nový řádek)" onkeydown="handleKeyDown(event)"></textarea>
+    <button class="btn" onclick="send()">Odeslat</button>
+  </div></div>
+</div>
+<div class="rightbar">
+  <h2>Paměť</h2>
+  <div class="section">
+    <div class="row"><input id="memTitle" placeholder="Název"></div>
+    <div class="row" style="margin-top:8px"><input id="memTags" placeholder="Tagy (čárkou)"></div>
+    <div class="row" style="margin-top:8px"><textarea id="memText" placeholder="Text poznámky…"></textarea></div>
+    <div class="row" style="margin-top:8px">
+      <label><input type="checkbox" id="toMem" checked> do paměti</label>
+      <label><input type="checkbox" id="toExc"> do výjimek</label>
+      <label><input type="checkbox" id="enc"> šifrovat</label>
+      <input id="pass" placeholder="heslo (pro šifrování)" style="width:40%">
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:8px">
+      <button class="btn" onclick="saveMem()">Uložit</button>
+    </div>
+  </div>
+  <div class="section">
+    <button class="btn" onclick="loadMem()">Načíst paměť</button>
+    <pre id="memOut" style="font-size:12px;margin-top:8px"></pre>
+  </div>
+  <h2>Nastavení</h2>
+  <div class="section">
+    <div class="row">
+      <label>Výpočetní zařízení:</label>
+      <select id="computeBackend">
+        <option value="cpu">Procesor (CPU)</option>
+        <option value="auto">Automaticky (nejrychlejší)</option>
+      </select>
+    </div>
+    <div id="deviceStatus" style="font-size:11px;color:#8bd0ff;margin:4px 0;"></div>
+    <div class="row" style="margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="onlineMode"> 
+        <span>Povolit stahování modelů</span>
+      </label>
+    </div>
+    <button class="btn" onclick="saveSettings()" style="margin-top:8px;">Uložit nastavení</button>
+    <div style="margin-top:12px;">
+      <button class="btn" onclick="checkDependencies()" style="background:#16a085;">🔍 Zkontrolovat závislosti</button>
+      <button class="btn" onclick="installDependencies()" style="background:#e74c3c;margin-left:8px;">⚡ Nainstalovat chybějící</button>
+      <button class="btn" onclick="debugPyTorch()" style="background:#f39c12;margin-left:8px;">🔧 Debug PyTorch</button>
+      <button class="btn" onclick="fixPyTorchCuda()" style="background:#e67e22;margin-left:8px;">🔥 Fix CUDA</button>
+      <button class="btn" onclick="forceFix()" style="background:#c0392b;margin-left:8px;">💥 Force Fix</button>
+    </div>
+    <div id="dependencyStatus" style="font-size:11px;margin:8px 0;padding:8px;background:#0f1930;border-radius:6px;display:none;"></div>
+  </div>
+  <h2>Stahování modelů</h2>
+  <div class="section">
+    <h3>🔍 Model Search & Download</h3>
+    <input type="text" id="searchQuery" placeholder="Napište název modelu (např. mistral, llama, qwen)" style="width:100%;margin:8px 0;padding:8px;background:#1b2a37;border:1px solid #2d3748;color:#e2e8f0;border-radius:4px">
+    <div style="margin:8px 0">
+      <button onclick="searchModels()" style="background:#0f6abf;color:white;border:none;padding:8px 16px;border-radius:4px;margin-right:8px;cursor:pointer">🔍 Vyhledat modely</button>
+    </div>
+    <hr style="border:1px solid #2d3748;margin:16px 0">
+    <input type="text" id="hfUrl" placeholder="Nebo zadejte přímou HuggingFace URL" style="width:100%;margin:8px 0;padding:8px;background:#1b2a37;border:1px solid #2d3748;color:#e2e8f0;border-radius:4px">
+    <input type="text" id="modelId" placeholder="Model ID (volitelné)" style="width:100%;margin:8px 0;padding:8px;background:#1b2a37;border:1px solid #2d3748;color:#e2e8f0;border-radius:4px">
+    <div style="margin:8px 0">
+      <button onclick="browseRepo()" style="background:#16a085;color:white;border:none;padding:8px 16px;border-radius:4px;margin-right:8px;cursor:pointer">📂 Procházet repo</button>
+      <button onclick="downloadDirect()" style="background:#16a085;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer">⬇️ Přímé stažení</button>
+    </div>
+    <div id="modelBrowser" style="margin-top:8px;display:none">
+      <div style="max-height:200px;overflow:auto;border:1px solid #1b2a37;border-radius:8px;padding:8px">
+        <div id="modelList"></div>
+      </div>
+    </div>
+    <pre id="downloadOut" style="font-size:12px;margin-top:8px"></pre>
+  </div>
+  <h2>Systém</h2>
+  <div class="section">
+    <div class="row">
+      <span>UI verze:</span> <span id="uiVer">neznámá</span>
+    </div>
+    <div class="row">
+      <span>LLM režim:</span> <span id="llmMode">neznámý</span>
+      <button onclick="forceFixCuda()" class="btn-action">🔧 Force Fix CUDA</button>
+      <button onclick="checkSystemSetup()" class="btn-action">🔍 System Check</button>
+      <button onclick="installMissingDeps()" class="btn-action">⚡ Auto Install</button>
+    <pre id="healthOut" style="font-size:12px;margin-top:8px"></pre>
+  </div>
+  </div>
+</div>
+</div>
+<script>
+async function loadModels(){const r=await fetch('/api/models/list');const d=await r.json();const sel=document.getElementById('model');sel.innerHTML='';(d.llm||[]).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});}
+function push(role,content){const m=document.getElementById('msgs');const d=document.createElement('div');d.className='msg '+role;const t=document.createElement('div');t.className='tag';t.textContent=role;const b=document.createElement('div');b.textContent=content;d.appendChild(t);d.appendChild(b);m.appendChild(d);m.scrollTop=m.scrollHeight;}
+async function send(){const text=document.getElementById('input').value.trim();const model=document.getElementById('model').value;if(!text)return;push('user',text);document.getElementById('input').value='';const r=await fetch('/api/models/llm/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model_id:model,prompt:text,params:{temperature:0.7,max_tokens:256}})});const d=await r.json();push('assistant',d.text||'[bez odpovědi]');}
+async function saveMem(){const title=document.getElementById('memTitle').value;const tags=document.getElementById('memTags').value.split(',').map(s=>s.trim()).filter(Boolean);const text=document.getElementById('memText').value;const to_memory=document.getElementById('toMem').checked;const to_exceptions=document.getElementById('toExc').checked;const encrypt=document.getElementById('enc').checked;const passphrase=document.getElementById('pass').value||null;await fetch('/api/brain/memory/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,tags,text,type:"note",to_memory,to_exceptions,encrypt,passphrase})});document.getElementById('memText').value='';}
+async function loadMem(){const r=await fetch('/api/brain/memory');const d=await r.json();document.getElementById('memOut').textContent=JSON.stringify(d,null,2);}
+async function health(){const r=await fetch('/api/health');const d=await r.json();document.getElementById('healthOut').textContent=JSON.stringify(d,null,2);document.getElementById('uiVer').textContent=d.ui_version;document.getElementById('llmMode').textContent=d.llm_mode;}
+async function loadComputeDevices(){try{const r=await fetch('/api/compute/devices');const d=await r.json();console.log('🔥 DEBUG: Compute devices response:', d);if(d.ok){const sel=document.getElementById('computeBackend');const currentValue=sel.value;sel.innerHTML='';sel.innerHTML+='<option value="auto">Automaticky (nejrychlejší dostupné)</option>';d.devices.forEach(device=>{console.log('🔥 DEBUG: Processing device:', device);if(device.available){sel.innerHTML+=`<option value="${device.id}">${device.name}</option>`;}else{sel.innerHTML+=`<option value="${device.id}" disabled>${device.name} - ${device.description}</option>`;}});sel.value=currentValue;updateDeviceStatus(d.devices);}else{console.error('🔥 DEBUG: Device loading failed:', d.error);document.getElementById('deviceStatus').textContent='Chyba načítání zařízení: '+d.error;}}catch(e){console.error('🔥 DEBUG: Device loading exception:', e);document.getElementById('deviceStatus').textContent='Chyba: '+e.message;}}
+async function updateDeviceStatus(devices){const status=document.getElementById('deviceStatus');const available=devices.filter(d=>d.available);status.textContent=`Dostupná zařízení: ${available.length}/${devices.length}`;}
+async function loadSettings(){const r=await fetch('/api/settings');const d=await r.json();document.getElementById('computeBackend').value=d.compute_backend||'cpu';document.getElementById('onlineMode').checked=d.online_mode||false;loadComputeDevices();}
+async function saveSettings(){const computeBackend=document.getElementById('computeBackend').value;const onlineMode=document.getElementById('onlineMode').checked;const needsRestart=await checkIfRestartNeeded(computeBackend);if(needsRestart){if(confirm('Změna výpočetního zařízení vyžaduje restart serveru.\n\nChcete restartovat nyní?\n\nAno = Restart nyní\nNe = Restart později')){await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:'dark',device:'desktop',selected_model:'',llm_mode:'stub',compute_backend:computeBackend,online_mode:onlineMode})});push('assistant','Nastavení uloženo. Server se restartuje...');setTimeout(()=>location.reload(),2000);}else{push('assistant','Nastavení bude použito po příštím restartu serveru.');}}else{await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:'dark',device:'desktop',selected_model:'',llm_mode:'stub',compute_backend:computeBackend,online_mode:onlineMode})});push('assistant','Nastavení uloženo: '+getDeviceName(computeBackend)+', online: '+(onlineMode?'povolen':'zakázán'));}}
+async function checkIfRestartNeeded(newDevice){const r=await fetch('/api/settings');const d=await r.json();return d.compute_backend!==newDevice;}
+function getDeviceName(deviceId){const sel=document.getElementById('computeBackend');for(let option of sel.options){if(option.value===deviceId)return option.textContent;}return deviceId;}
+function handleKeyDown(event){if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}else if(event.key==='Enter'&&event.shiftKey){return true;}}
+async function searchModels(){const query=document.getElementById('searchQuery').value.trim();if(!query){push('assistant','Zadejte název modelu pro vyhledání');return;}document.getElementById('downloadOut').textContent='Vyhledávám modely...';const r=await fetch('/api/models/search_hf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query,limit:10})});const d=await r.json();if(d.ok){const browser=document.getElementById('modelBrowser');const list=document.getElementById('modelList');list.innerHTML='';d.models.forEach(model=>{const item=document.createElement('div');item.style.cssText='padding:12px;margin:8px 0;border:1px solid #1b2a37;border-radius:8px;cursor:pointer;background:#0e141b;transition:background 0.2s';item.innerHTML=`<div style="font-weight:bold;font-size:14px;margin-bottom:4px">${model.id}</div><div style="font-size:11px;color:#9fd2ff;margin-bottom:6px">${model.description}</div><div style="font-size:10px;color:#8bd0ff">${model.downloads} downloads</div>`;item.onmouseover=()=>item.style.background='#1a2332';item.onmouseout=()=>item.style.background='#0e141b';item.onclick=()=>browseModelRepo(model.repo_url);list.appendChild(item);});browser.style.display='block';document.getElementById('downloadOut').textContent=`Nalezeno ${d.models.length} modelů pro "${query}"`;}else{document.getElementById('downloadOut').textContent='Chyba: '+d.error;}}
+async function browseModelRepo(repoUrl){document.getElementById('downloadOut').textContent='Načítám dostupné soubory...';const r=await fetch('/api/models/browse_hf_repo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repo_url:repoUrl})});const d=await r.json();if(d.ok){const list=document.getElementById('modelList');list.innerHTML='';d.models.forEach(model=>{const item=document.createElement('div');item.style.cssText='padding:8px;margin:4px 0;border:1px solid #1b2a37;border-radius:8px;cursor:pointer;background:#0e141b';item.innerHTML=`<div style="font-weight:bold">${model.filename}</div><div style="font-size:11px;color:#8bd0ff;margin:4px 0">${model.capabilities.map(c=>`<span class="tag">${c}</span>`).join(' ')}</div><div style="font-size:11px;color:#9fd2ff">${model.size_mb} MB • ${model.format}</div>`;item.onclick=()=>downloadFromBrowser(model.download_url,model.filename);list.appendChild(item);});document.getElementById('downloadOut').textContent=`Nalezeno ${d.models.length} souborů v ${d.repo}`;}else{document.getElementById('downloadOut').textContent='Chyba: '+d.error;}}
+async function browseRepo(){const url=document.getElementById('hfUrl').value.trim();if(!url){push('assistant','Zadejte HF repository URL');return;}browseModelRepo(url);}
+async function downloadFromBrowser(url,filename){const progressBar=document.createElement('div');progressBar.innerHTML='<div style="background:#1b2a37;border-radius:10px;padding:2px;margin:8px 0"><div id="progressFill" style="background:#0f6abf;height:20px;border-radius:8px;width:0%;transition:width 0.3s;text-align:center;line-height:20px;color:white;font-size:12px">0%</div></div>';document.getElementById('downloadOut').innerHTML='';document.getElementById('downloadOut').appendChild(progressBar);const downloadPromise=fetch('/api/models/add_from_hf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,model_type:'llm',id:null})});const progressInterval=setInterval(async()=>{try{const progResp=await fetch(`/api/models/download_progress/${encodeURIComponent(filename)}`);const progData=await progResp.json();if(progData.ok&&progData.progress){const prog=progData.progress;document.getElementById('progressFill').style.width=prog.progress_percent+'%';document.getElementById('progressFill').textContent=prog.progress_percent+'%';if(prog.status==='completed'||prog.status==='error'){clearInterval(progressInterval);}}}catch(e){console.log('Progress check failed:',e);}},1000);const r=await downloadPromise;clearInterval(progressInterval);document.getElementById('progressFill').style.width='100%';document.getElementById('progressFill').textContent='100%';const d=await r.json();setTimeout(()=>{document.getElementById('downloadOut').textContent=JSON.stringify(d,null,2);if(d.ok){push('assistant',`Model ${filename} stažen! Format: ${d.format}, Capabilities: ${d.capabilities.join(', ')}`);loadModels();document.getElementById('modelBrowser').style.display='none';}else{push('assistant','Chyba stahování: '+d.error);}},1000);}
+async function downloadDirect(){const url=document.getElementById('hfUrl').value.trim();const modelId=document.getElementById('modelId').value.trim()||null;if(!url){push('assistant','Zadejte přímý URL souboru');return;}const progressBar=document.createElement('div');progressBar.innerHTML='<div style="background:#1b2a37;border-radius:10px;padding:2px;margin:8px 0"><div id="progressFill" style="background:#0f6abf;height:20px;border-radius:8px;width:0%;transition:width 0.3s;text-align:center;line-height:20px;color:white;font-size:12px">0%</div></div>';document.getElementById('downloadOut').innerHTML='';document.getElementById('downloadOut').appendChild(progressBar);let progress=0;const progressInterval=setInterval(()=>{progress+=Math.random()*10;if(progress>90)progress=90;document.getElementById('progressFill').style.width=progress+'%';document.getElementById('progressFill').textContent=Math.round(progress)+'%';},500);const r=await fetch('/api/models/add_from_hf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,model_type:'llm',id:modelId})});clearInterval(progressInterval);document.getElementById('progressFill').style.width='100%';document.getElementById('progressFill').textContent='100%';const d=await r.json();setTimeout(()=>{document.getElementById('downloadOut').textContent=JSON.stringify(d,null,2);if(d.ok){push('assistant','Model stažen: '+d.message+' ('+d.format+', '+d.capabilities.join(', ')+')');loadModels();}else{push('assistant','Chyba stahování: '+d.error);}},1000);}
+async function checkDependencies(){const status=document.getElementById('dependencyStatus');status.style.display='block';status.innerHTML='🔍 Kontroluji dual-Python setup...';const r=await fetch('/api/system/check',{method:'POST'});const d=await r.json();if(d.success){const sys=d.system_status;let html='<div style="font-weight:bold;margin-bottom:8px;">🎯 System Status: '+sys.status+'</div>';html+=`<div>Python 3.12: ${sys.python312.available?'✅':'❌'} PyTorch CUDA: ${sys.python312.pytorch_cuda?'✅':'❌'}</div>`;html+=`<div>Python 3.13: ${sys.python313.available?'✅':'❌'} llama-cpp CUDA: ${sys.python313.llamacpp_cuda?'✅':'❌'}</div>`;html+=`<div>GPU: ${sys.gpu_info.nvidia?sys.gpu_info.device_name+' ('+sys.gpu_info.vram_gb+'GB)':'❌ Nedostupná'}</div>`;if(sys.recommendations.length>0){html+='<div style="color:#e74c3c;margin-top:8px;">Doporučení:</div>';sys.recommendations.forEach(rec=>html+=`<div>• ${rec.description}</div>`);}status.innerHTML=html;}else{status.innerHTML='❌ System check failed: '+d.error;}}
+async function installDependencies(){const status=document.getElementById('dependencyStatus');status.style.display='block';status.innerHTML='⚡ Instaluji chybějící závislosti... (může trvat několik minut)';const r=await fetch('/api/system/install-missing',{method:'POST'});const d=await r.json();if(d.success){if(d.results.length>0){let html='<div style="font-weight:bold;margin-bottom:8px;">📦 Výsledky instalace:</div>';d.results.forEach(res=>html+=`<div>${res.success?'✅':'❌'} ${res.command}</div>`);status.innerHTML=html;push('assistant','Auto-instalace dokončena! Restartuj server pro aktivaci změn.');setTimeout(()=>location.reload(),3000);}else{status.innerHTML='✅ Všechny závislosti jsou již nainstalovány!';}}else{status.innerHTML='❌ Auto-install failed: '+d.error;}}
+async function debugPyTorch(){const status=document.getElementById('dependencyStatus');status.style.display='block';status.innerHTML='🔧 Spouštím detailní PyTorch diagnostiku...';const r=await fetch('/api/debug/pytorch');const d=await r.json();if(d.ok){status.innerHTML='<pre style="white-space:pre-wrap;font-size:10px;">'+d.output+'</pre>';}else{status.innerHTML='❌ Debug failed: '+d.error;}}
+async function fixPyTorchCuda(){const status=document.getElementById('dependencyStatus');status.style.display='block';status.innerHTML='🔥 Odstraňuji CPU-only PyTorch a instaluji CUDA verzi... (může trvat několik minut)';const r=await fetch('/api/fix/pytorch-cuda',{method:'POST'});const d=await r.json();if(d.ok){status.innerHTML='<pre style="white-space:pre-wrap;font-size:10px;">'+d.output+'</pre>';push('assistant','PyTorch CUDA oprava dokončena! Restartuj server pro aktivaci změn.');setTimeout(()=>location.reload(),3000);}else{status.innerHTML='❌ Fix failed: '+d.error;}}
+async function forceFix(){const status=document.getElementById('dependencyStatus');status.style.display='block';status.innerHTML='💥 Agresivní oprava PyTorch - zabíjím procesy a force reinstall... (může trvat několik minut)';const r=await fetch('/api/force-fix/pytorch',{method:'POST'});const d=await r.json();if(d.ok){status.innerHTML='<pre style="white-space:pre-wrap;font-size:10px;">'+d.output+'</pre>';push('assistant','Force fix dokončen! Restartuj server pro aktivaci změn.');setTimeout(()=>location.reload(),3000);}else{status.innerHTML='❌ Force fix failed: '+d.error;}}
+async function checkSystemSetup(){const status=document.getElementById('dependencyStatus');status.style.display='block';status.innerHTML='🔍 Kontroluji dual-Python setup...';const r=await fetch('/api/system/check',{method:'POST'});const d=await r.json();if(d.success){const sys=d.system_status;let html='<div style="font-weight:bold;margin-bottom:8px;">🎯 System Status: '+sys.status+'</div>';html+=`<div>Python 3.12: ${sys.python312.available?'✅':'❌'} PyTorch CUDA: ${sys.python312.pytorch_cuda?'✅':'❌'}</div>`;html+=`<div>Python 3.13: ${sys.python313.available?'✅':'❌'} llama-cpp CUDA: ${sys.python313.llamacpp_cuda?'✅':'❌'}</div>`;html+=`<div>GPU: ${sys.gpu_info.nvidia?sys.gpu_info.device_name+' ('+sys.gpu_info.vram_gb+'GB)':'❌ Nedostupná'}</div>`;if(sys.recommendations.length>0){html+='<div style="color:#e74c3c;margin-top:8px;">Doporučení:</div>';sys.recommendations.forEach(rec=>html+=`<div>• ${rec.description}</div>`);}status.innerHTML=html;}else{status.innerHTML='❌ System check failed: '+d.error;}}
+async function installMissingDeps(){const status=document.getElementById('dependencyStatus');status.style.display='block';status.innerHTML='⚡ Instaluji chybějící závislosti... (může trvat několik minut)';const r=await fetch('/api/system/install-missing',{method:'POST'});const d=await r.json();if(d.success){if(d.results.length>0){let html='<div style="font-weight:bold;margin-bottom:8px;">📦 Výsledky instalace:</div>';d.results.forEach(res=>html+=`<div>${res.success?'✅':'❌'} ${res.command}</div>`);status.innerHTML=html;push('assistant','Auto-instalace dokončena! Restartuj server pro aktivaci změn.');setTimeout(()=>location.reload(),3000);}else{status.innerHTML='✅ Všechny závislosti jsou již nainstalovány!';}}else{status.innerHTML='❌ Auto-install failed: '+d.error;}}
+loadModels();loadSettings();health();push('assistant','Vítej ve Virgil Tripack v1.3.0! Nová funkce: Integrovaný dependency installer pro automatickou instalaci PyTorch s CUDA podporou.');
+</script>
+</body></html>
