@@ -899,18 +899,40 @@ async function downloadDirect() {
 // ===== Modal: Nastavení modelu =====
 function showModelSettings() {
   const model = document.getElementById('model').value;
-  if (!model) { push('assistant','Nejprve vyberte model.'); return; }
-  document.getElementById('msActiveModel').textContent = model;
+
+  // DEMO MODE: Pokud není vybraný model, použijeme demo režim
+  const isDemoMode = !model;
+  const demoModel = isDemoMode ? 'Demo Model (Qwen-14B)' : model;
+
+  document.getElementById('msActiveModel').textContent = demoModel;
   document.getElementById('ms_test_out').textContent = '';
-  // Načíst uložené hodnoty
-  fetch(`/api/models/settings?model=${encodeURIComponent(model)}`)
-    .then(r=>r.json())
-    .then(d=>{
-      if (d.ok && d.settings) { applyModelSettingsToUI(d.settings); }
-      else { applyModelSettingsToUI(getRecommendedDefaults()); }
-      document.getElementById('modelSettingsModal').style.display='block';
-    })
-    .catch(_=>{ applyModelSettingsToUI(getRecommendedDefaults()); document.getElementById('modelSettingsModal').style.display='block'; });
+
+  // Přidat demo indikátor
+  if (isDemoMode) {
+    document.getElementById('msActiveModel').textContent += ' 🎮 DEMO MODE';
+    document.getElementById('msActiveModel').style.color = '#f39c12';
+    document.getElementById('msActiveModel').style.fontWeight = 'bold';
+  } else {
+    document.getElementById('msActiveModel').style.color = '';
+    document.getElementById('msActiveModel').style.fontWeight = '';
+  }
+
+  // V demo režimu použijeme výchozí hodnoty bez načítání z API
+  if (isDemoMode) {
+    applyModelSettingsToUI(getRecommendedDefaults());
+    document.getElementById('modelSettingsModal').style.display='block';
+    push('assistant','🎮 Demo režim: Prohlížíte si nastavení modelu bez připojení k backendu. Všechny funkce jsou dostupné pro ukázku!');
+  } else {
+    // Načíst uložené hodnoty pro skutečný model
+    fetch(`/api/models/settings?model=${encodeURIComponent(model)}`)
+      .then(r=>r.json())
+      .then(d=>{
+        if (d.ok && d.settings) { applyModelSettingsToUI(d.settings); }
+        else { applyModelSettingsToUI(getRecommendedDefaults()); }
+        document.getElementById('modelSettingsModal').style.display='block';
+      })
+      .catch(_=>{ applyModelSettingsToUI(getRecommendedDefaults()); document.getElementById('modelSettingsModal').style.display='block'; });
+  }
 }
 function closeModelSettings(){ document.getElementById('modelSettingsModal').style.display='none'; }
 function getRecommendedDefaults() {
