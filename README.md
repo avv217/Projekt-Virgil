@@ -19,21 +19,6 @@ Vznikl z čisté vášně pro technologie – jako další z mých projektů, na
 
 ## 🎬 Animovaná ukázka v1.6.0
 
-Prohlédněte si animovanou ukázku nových funkcí Virgil v1.6.0:
-**[🎬 Zobrazit animovanou ukázku](https://github.com/avv217/Projekt-Virgil/raw/main/ukázka%20verze%201.6.gif)**
-
-*Tato ukázka představuje:*
-- 🛠️ Pokročilé nastavení modelu s posuvníky
-- 🎨 Preset profily (Profesionální, Kreativní, Technický)
-- 📊 České nápovědy k parametrům
-- ⚡ Rychlý test nastavení
-
----
-
-
-
-## 🎬 Animovaná ukázka v1.6.0
-
 Podívejte se na animovanou ukázku nových funkcí Virgil v1.6.0:
 **[🎬 Zobrazit animovanou ukázku](https://avv217.github.io/Projekt-Virgil/docs/gif-showcase.html)**
 
