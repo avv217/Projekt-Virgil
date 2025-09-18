@@ -2,10 +2,7 @@
 
 *✨ Pojďme z toho udělat cestu.*
 
-
-
-[![Virgil v1.6.0 Demo](ukázka verze 1.6.gif)](ukázka verze 1.6.gif)
-
+[![Virgil v1.6.0 Demo](https://github.com/avv217/Projekt-Virgil/raw/main/uk%C3%A1zka%20verze%201.6.gif)](https://github.com/avv217/Projekt-Virgil/raw/main/uk%C3%A1zka%20verze%201.6.gif)
 
 Virgil je lokální AI asistent, který běží plně na vašem počítači.  
 
@@ -14,24 +11,15 @@ Je rychlý, flexibilní, český a připravený nejen pro školy, instituce a la
 Vznikl z čisté vášně pro technologie – jako další z mých projektů, na kterých pracuji už více než 20 let.
 
 
-
 ## 🎮 Vyzkoušet demo
-
-
 
 Než si stáhnete aplikaci, vyzkoušejte interaktivní demo UI:  
 
 **[🖥️ Zkusit Virgil Demo](https://avv217.github.io/Projekt-Virgil)**
 
-
-
 Demo ukazuje skutečné rozhraní aplikace – můžete klikat na tlačítka, měnit nastavení a vidět, jak aplikace funguje.
 
-
-
 ---
-
-
 
 ## ✨ Kdo jsem:
 
@@ -41,19 +29,13 @@ Elektroniku a programování modifikuji už od svých 10 let.
 
 Od té doby jsem vytvořil řadu menších projektů, které mě krok za krokem dovedly až sem – k Virgilu a dalším, které teprve přijdou.  
 
-
-
 ❌ Nejsem korporace.  
 
 ❌ Nejsem konkurence.  
 
 ✅ Jsem novou větví – nezávislou, otevřenou, tvořenou srdcem a vizí.  
 
-
-
 ---
-
-
 
 ## 🚀 Co Virgil umí:
 
@@ -69,21 +51,13 @@ Od té doby jsem vytvořil řadu menších projektů, které mě krok za krokem 
 
 - ✅ 🔧  Otevřený vývoj – každý release je funkční a testovaný
 
-
-
 ---
 
-
-
 ## 🌌 Další možnosti využití:
-
-
 
 Virgil není jen AI pro psaní textů.  
 
 Díky své flexibilitě se může časem uplatnit i v oblastech, jako jsou:
-
-
 
 - 🔭 Astronomie – analýza dat, hledání vzorců a anomálií ve vesmírných měřeních  
 
@@ -93,17 +67,11 @@ Díky své flexibilitě se může časem uplatnit i v oblastech, jako jsou:
 
 - 🧪 Výzkum – podpora nezávislých experimentátorů a laboratoří  
 
-
-
 Tyto směry ukazují, že Virgil může růst nejen jako osobní AI asistent,  
 
 ale i jako nástroj pro vědu, výzkum a technologický pokrok.
 
-
-
 ---
-
-
 
 ## 🎯 Kam momentálně směřuji a co je cílem?:
 
@@ -115,21 +83,14 @@ ale i jako nástroj pro vědu, výzkum a technologický pokrok.
 
 - 🔄 Pokračovat v dalších projektech, které budou nejen navazovat  
 
-
-
 ❌ Nejsem konkurent
 
 ✅ Chci ukázat, že i jednotlivec může vytvořit vlastní cestu.  
 
-
-
 ---
-
-
 
 ## 💡 Proč hledám podporu:
 
 Virgil dokazuje, že i jednotlivec může postavit AI nástroj, který obstojí vedle velkých řešení.  
 
 Ale tohle jsou jen první kroky. 
-
