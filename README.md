@@ -4,7 +4,7 @@
 
 
 
-[![Virgil v1.6.0 Demo](ukázka verze 1.6.gif)](ukázka verze 1.6.gif)
+[![Virgil Screenshot](screen-001.jpg)](screen-001.jpg)
 
 
 Virgil je lokální AI asistent, který běží plně na vašem počítači.  
