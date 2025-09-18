@@ -30,6 +30,21 @@ Prohlédněte si animovanou ukázku nových funkcí Virgil v1.6.0:
 
 ---
 
+
+
+## 🎬 Animovaná ukázka v1.6.0
+
+Podívejte se na animovanou ukázku nových funkcí Virgil v1.6.0:
+**[🎬 Zobrazit animovanou ukázku](https://avv217.github.io/Projekt-Virgil/docs/gif-showcase.html)**
+
+*Tato ukázka představuje:*
+- 🛠️ Pokročilé nastavení modelu s posuvníky
+- 🎨 Preset profily (Profesionální, Kreativní, Technický)
+- 🇨🇿 České nápovědy k parametrům
+- ⚡ Rychlý test nastavení
+
+---
+
 ## 🎮 Vyzkoušet demo
 
 
