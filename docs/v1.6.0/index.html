@@ -1,0 +1,1309 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virgil Tripack v1.6 - AI Asistent s Multi-Session a Nastavením modelu</title>
+<style>
+:root { color-scheme: dark; }
+body { margin:0; background:#0b0f14; color:#e6f0ff; font-family:system-ui,-apple-system,Segoe UI,Roboto; }
+.app { display:grid; grid-template-columns:280px 1fr 340px; height:100vh; }
+.sidebar,.rightbar { background:#0e141b; border-right:1px solid #15202b; }
+.rightbar { border-left:1px solid #15202b; border-right:none; }
+h1 { margin:0; padding:16px 14px; color:#87cbff; font:700 16px/1.2 system-ui; text-align:center; border-bottom:2px solid #15202b; }
+h2 { margin:0; padding:12px 14px; color:#87cbff; font:600 13px/1.2 system-ui; letter-spacing:.12em; text-transform:uppercase; }
+.section { padding:12px; border-top:1px solid #15202b; }
+.msgs { height:calc(100vh - 280px); overflow:auto; background:#0b1219; border:1px solid #1b2a37; border-radius:12px; margin:12px; padding:8px; }
+.msg { padding:10px 12px; margin:8px; border-radius:10px; position:relative; }
+.msg.user { background:#132334; }
+.msg.assistant { background:#111a23; }
+.msg.generating { background:#1a2332; border-left:3px solid #0f6abf; }
+textarea, input, select { width:100%; background:#0e141b; color:#e6f0ff; border:1px solid #1b2a37; border-radius:10px; padding:10px; box-sizing:border-box; }
+.btn { background:#0f6abf; border:none; color:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; transition:background .2s; }
+.btn:hover { background:#1a7dd1; }
+.btn-danger { background:#e74c3c; }
+.btn-danger:hover { background:#c0392b; }
+.btn-success { background:#16a085; }
+.btn-success:hover { background:#138d75; }
+.btn-warning { background:#f39c12; }
+.btn-warning:hover { background:#e67e22; }
+.row { display:flex; gap:8px; align-items:center; }
+.row-wrap { flex-wrap:wrap; }
+.tag { font-size:12px; background:#0f1930; color:#8bd0ff; border:1px solid #1b2a37; padding:4px 8px; border-radius:999px; display:inline-block; }
+pre { white-space:pre-wrap; font-size:12px; }
+.badge { font-size:11px; padding:2px 6px; border-radius:8px; border:1px solid #1b2a37; background:#0f1930; color:#9fd2ff; }
+.status-ok { color:#16a085; }
+.status-error { color:#e74c3c; }
+.status-warning { color:#f39c12; }
+.chat-controls { padding:8px 12px; background:#0e141b; border-top:1px solid #15202b; display:flex; gap:8px; align-items:center; }
+.model-item { padding:8px; margin:4px 0; border:1px solid #1b2a37; border-radius:8px; background:#0e141b; display:flex; justify-content:space-between; align-items:center; }
+.model-name { font-weight:bold; color:#e6f0ff; }
+.model-info { font-size:11px; color:#8bd0ff; }
+.delete-btn { background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:11px; }
+.delete-btn:hover { background:#c0392b; }
+.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); }
+.modal-content { background:#0e141b; margin:5% auto; padding:20px; border:1px solid #1b2a37; border-radius:12px; width:720px; color:#e6f0ff; max-height:90vh; overflow:auto; }
+.modal-buttons { display:flex; gap:12px; justify-content:flex-end; margin-top:16px; }
+.generating-indicator { display:none; color:#0f6abf; font-size:12px; margin-left:8px; }
+.stop-btn { background:#e74c3c; display:none; }
+
+/* Session management */
+.session-item { padding:8px; margin:4px 0; border:1px solid #1b2a37; border-radius:8px; background:#0e141b; cursor:pointer; transition:background .2s; }
+.session-item:hover { background:#1a2332; }
+.session-item.active { background:#132334; border-color:#0f6abf; }
+.session-title { font-weight:bold; font-size:13px; margin-bottom:4px; }
+.session-info { font-size:11px; color:#8bd0ff; }
+.session-model { font-size:10px; color:#9fd2ff; margin-top:2px; }
+.new-session-btn { background:#16a085; margin-bottom:8px; }
+.new-session-btn:hover { background:#138d75; }
+.search-box { margin-bottom:8px; font-size:12px; padding:8px; }
+.search-results { max-height:200px; overflow:auto; border:1px solid #1b2a37; border-radius:8px; margin-top:8px; display:none; }
+.search-result { padding:8px; border-bottom:1px solid #1b2a37; cursor:pointer; font-size:11px; }
+.search-result:hover { background:#1a2332; }
+.search-result:last-child { border-bottom:none; }
+.search-highlight { background:#f39c12; color:#000; padding:1px 3px; border-radius:3px; }
+
+/* Nastavení modelu */
+.settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.settings-card { border:1px solid #1b2a37; border-radius:10px; padding:12px; background:#0b1219; }
+.settings-card h4 { margin:0 0 8px 0; color:#9fd2ff; font-size:13px; }
+.inline { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.note { font-size:11px; color:#8bd0ff; }
+.small { font-size:12px; }
+hr.div { border:1px solid #1b2a37; margin:12px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <h1>🧠 Virgil Tripack v1.6</h1>
+
+    <div class="section">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div><span class="badge">UI</span> <span id="uiVer">v1.6</span></div>
+        <div><span class="badge">LLM</span> <span id="llmMode">aktivní</span></div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:#8bd0ff" id="systemStatus">
+        Multi-session aktivní • Modal „Nastavení modelu“
+      </div>
+    </div>
+
+    <h2>💬 Chat Sessions</h2>
+    <div class="section">
+      <button class="btn new-session-btn" onclick="createNewSession()" style="width:100%">➕ Nová session</button>
+      <div id="sessionsList" style="max-height:200px;overflow:auto"></div>
+    </div>
+
+    <h2>⚙️ Správa systému</h2>
+    <div class="section">
+      <div class="row row-wrap" style="margin-bottom:8px">
+        <button class="btn btn-success" onclick="checkDependencies()" style="flex:1">🔍 Kontrola</button>
+        <button class="btn btn-warning" onclick="installDependencies()" style="flex:1">⚡ Instalace</button>
+      </div>
+      <div class="row row-wrap">
+        <button class="btn" onclick="debugPyTorch()" style="flex:1">🔧 Debug</button>
+        <button class="btn btn-danger" onclick="forceFix()" style="flex:1">💥 Oprava</button>
+      </div>
+      <div id="dependencyStatus" style="font-size:11px;margin:8px 0;padding:8px;background:#0f1930;border-radius:6px;display:none;"></div>
+    </div>
+
+    <h2>🤖 AI Model</h2>
+    <div class="section">
+      <label>Aktivní model:</label>
+      <select id="model" onchange="onModelChange()"></select>
+      <div style="margin-top:8px">
+        <button class="btn" onclick="showModelManager()" style="width:100%">📋 Správa modelů</button>
+        <button class="btn btn-warning" onclick="showModelSettings()" style="width:100%;margin-top:8px">🛠️ Nastavení modelu</button>
+      </div>
+    </div>
+
+    <h2>⚡ Výkon</h2>
+    <div class="section">
+      <label>Výpočetní zařízení:</label>
+      <select id="computeBackend">
+        <option value="cpu">💻 Procesor (CPU) - úspora energie</option>
+        <option value="cuda:0">🚀 GPU (CUDA) - maximální rychlost</option>
+        <option value="auto">🎯 Automaticky (nejrychlejší)</option>
+      </select>
+      <div id="deviceStatus" style="font-size:11px;color:#8bd0ff;margin:4px 0;"></div>
+      <button class="btn" onclick="saveSettings()" style="margin-top:8px;width:100%">💾 Uložit nastavení</button>
+    </div>
+
+    <h2>🌐 Režim</h2>
+    <div class="section">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="onlineMode"> 
+        <span>Povolit stahování modelů z internetu</span>
+      </label>
+    </div>
+  </div>
+
+  <div>
+    <div style="padding:12px;background:#0e141b;border-bottom:1px solid #15202b;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <span class="badge">Session</span>
+        <span id="currentSessionTitle">Žádná session</span>
+      </div>
+      <div>
+        <span class="badge" id="currentSessionModel">Žádný model</span>
+      </div>
+    </div>
+
+    <div class="msgs" id="msgs"></div>
+    <div class="chat-controls">
+      <textarea id="input" placeholder="Napište svou zprávu... (Enter = odeslat, Shift+Enter = nový řádek)" onkeydown="handleKeyDown(event)" style="flex:1"></textarea>
+      <button class="btn" id="sendBtn" onclick="send()">📤 Odeslat</button>
+      <button class="btn stop-btn" id="stopBtn" onclick="stopGeneration()">⏹️ Stop</button>
+      <span class="generating-indicator" id="generatingIndicator">⏳ Generuji...</span>
+    </div>
+  </div>
+
+  <div class="rightbar">
+    <h2>🔍 Globální vyhledávání</h2>
+    <div class="section">
+      <input type="text" id="globalSearch" class="search-box" placeholder="Vyhledat v historii všech sessions...">
+      <button class="btn" onclick="performGlobalSearch()" style="width:100%;margin-bottom:8px">🔍 Vyhledat</button>
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <h2>🧠 Paměť</h2>
+    <div class="section">
+      <div class="row"><input id="memTitle" placeholder="Název poznámky"></div>
+      <div class="row" style="margin-top:8px"><input id="memTags" placeholder="Štítky (oddělené čárkou)"></div>
+      <div class="row" style="margin-top:8px"><textarea id="memText" placeholder="Text poznámky..." rows="3"></textarea></div>
+      <div class="row" style="margin-top:8px;font-size:12px">
+        <label><input type="checkbox" id="toMem" checked> Uložit do paměti</label>
+        <label><input type="checkbox" id="enc"> Šifrovat</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="pass" placeholder="Heslo pro šifrování (volitelné)" style="width:60%">
+        <button class="btn" onclick="saveMem()" style="width:35%">💾 Uložit</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="btn" onclick="loadMem()" style="width:100%">📖 Načíst paměť</button>
+      <pre id="memOut" style="font-size:11px;margin-top:8px;max-height:150px;overflow:auto"></pre>
+    </div>
+
+    <h2>📥 Stahování modelů</h2>
+    <div class="section">
+      <input type="text" id="searchQuery" placeholder="Vyhledat model (např. mistral, llama)" style="margin-bottom:8px">
+      <button class="btn" onclick="searchModels()" style="width:100%;margin-bottom:8px">🔍 Vyhledat</button>
+
+      <hr style="border:1px solid #2d3748;margin:12px 0">
+
+      <input type="text" id="hfUrl" placeholder="Nebo zadejte přímou HuggingFace URL" style="margin-bottom:8px">
+      <div class="row">
+        <button class="btn" onclick="browseRepo()" style="flex:1">📂 Procházet</button>
+        <button class="btn" onclick="downloadDirect()" style="flex:1">⬇️ Stáhnout</button>
+      </div>
+
+      <div id="modelBrowser" style="margin-top:8px;display:none">
+        <div style="max-height:200px;overflow:auto;border:1px solid #1b2a37;border-radius:8px;padding:8px">
+          <div id="modelList"></div>
+        </div>
+      </div>
+      <pre id="downloadOut" style="font-size:11px;margin-top:8px;max-height:100px;overflow:auto"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Správa modelů -->
+<div id="modelModal" class="modal">
+  <div class="modal-content">
+    <h3>📋 Správa modelů</h3>
+    <div id="modelManagerList" style="max-height:300px;overflow:auto;margin:16px 0"></div>
+    <div class="modal-buttons">
+      <button class="btn" onclick="closeModelManager()">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Potvrzení smazání -->
+<div id="deleteModal" class="modal">
+  <div class="modal-content">
+    <h3>⚠️ Potvrzení smazání</h3>
+    <p>Opravdu chcete smazat model <strong id="deleteModelName"></strong>?</p>
+    <p style="font-size:12px;color:#f39c12">Tato akce je nevratná!</p>
+    <div class="modal-buttons">
+      <button class="btn" onclick="closeDeleteModal()">Zrušit</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">🗑️ Smazat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Přepnutí modelu -->
+<div id="modelSwitchModal" class="modal">
+  <div class="modal-content">
+    <h3>🔄 Přepnutí modelu</h3>
+    <p>Chcete zachovat stávající informace v této session nebo začít s novou instancí?</p>
+    <div style="margin:16px 0;padding:12px;background:#0f1930;border-radius:8px;font-size:12px">
+      <strong>Aktuální session:</strong> <span id="switchSessionTitle"></span><br>
+      <strong>Nový model:</strong> <span id="switchNewModel"></span>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn" onclick="switchModelKeepSession()">💾 Zachovat session</button>
+      <button class="btn btn-warning" onclick="switchModelNewSession()">🆕 Nová session</button>
+      <button class="btn" onclick="closeModelSwitchModal()">❌ Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nastavení modelu (v1.6) -->
+<div id="modelSettingsModal" class="modal">
+  <div class="modal-content">
+    <h3>🛠️ Nastavení modelu</h3>
+    <div class="note" id="modelSettingsInfo" style="margin-bottom:8px">Pro aktivní model: <span id="msActiveModel" class="tag">—</span></div>
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h4>Styl odpovědi</h4>
+        <div class="inline small">
+          <label><input type="radio" name="ms_style" value="precise"> Nejpřesnější</label>
+          <label><input type="radio" name="ms_style" value="balanced"> Vyvážený</label>
+          <label><input type="radio" name="ms_style" value="creative"> Kreativní</label>
+        </div>
+        <div class="note">Ovlivňuje teplotu a sampling (menší halucinace ⇄ větší kreativita).</div>
+        <hr class="div">
+        <h4>Režim odpovědi</h4>
+        <div class="inline small">
+          <label><input type="radio" name="ms_resp_mode" value="free"> Volný text</label>
+          <label><input type="radio" name="ms_resp_mode" value="structured"> Strukturovaně</label>
+          <label><input type="radio" name="ms_resp_mode" value="brief"> Pouze stručná</label>
+        </div>
+      </div>
+      <div class="settings-card">
+        <h4>Délka a opakování</h4>
+        <div class="inline small" style="margin-bottom:8px">
+          <label><input type="radio" name="ms_length" value="short"> Krátká</label>
+          <label><input type="radio" name="ms_length" value="medium"> Střední</label>
+          <label><input type="radio" name="ms_length" value="long"> Dlouhá</label>
+        </div>
+        <div class="small" style="margin-bottom:6px">Zabránit opakování:</div>
+        <select id="ms_repetition">
+          <option value="gentle">Jemně</option>
+          <option value="medium">Středně</option>
+          <option value="strict">Přísně</option>
+        </select>
+        <div class="small" style="margin-top:8px">Stabilita:</div>
+        <div class="inline small">
+          <label><input type="radio" name="ms_stability" value="normal"> Běžná</label>
+          <label><input type="radio" name="ms_stability" value="stable"> Stabilní</label>
+        </div>
+      </div>
+      <div class="settings-card">
+        <h4>Jazyk a styl</h4>
+        <div class="inline small">
+          <label><input type="checkbox" id="ms_lang_cz" checked> Vždy česky</label>
+          <label><input type="checkbox" id="ms_no_meta" checked> Bez meta‑řečí</label>
+        </div>
+        <div class="note" style="margin-top:8px">Vnutí české odpovědi a odstraní „jako AI model…“ apod.</div>
+      </div>
+      <!-- ===== ROZŠÍŘENÉ NASTAVENÍ ===== -->
+      <div class="settings-card" style="grid-column:1 / -1">
+        <h4>🌡️ Pokročilé teplota & diverzita</h4>
+        <div class="small" style="display:grid;grid-template-columns:180px 1fr 60px;gap:8px;align-items:center">
+          <div>Min-P (minimální pravděpodobnost)</div>
+          <input type="range" id="ms_min_p" min="0.0" max="1.0" step="0.01" oninput="updateAdvLabels()">
+          <div id="ms_min_p_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Filtruje tokeny pod minimální pravděpodobností. Vyšší hodnoty = konzervativnější výběr.</div>
+
+          <div>Presence Penalty (-2.0 až 2.0)</div>
+          <input type="range" id="ms_presence_penalty" min="-2.0" max="2.0" step="0.1" oninput="updateAdvLabels()">
+          <div id="ms_presence_penalty_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Trest za použití stejného slova. Záporné hodnoty = povolení opakování.</div>
+
+          <div>Frequency Penalty (-2.0 až 2.0)</div>
+          <input type="range" id="ms_frequency_penalty" min="-2.0" max="2.0" step="0.1" oninput="updateAdvLabels()">
+          <div id="ms_frequency_penalty_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Trest za frekvenci slov. Vyšší hodnoty = vyváženější distribuce.</div>
+        </div>
+      </div>
+
+      <div class="settings-card" style="grid-column:1 / -1">
+        <h4>📏 Délka & kontext</h4>
+        <div class="small" style="display:grid;grid-template-columns:180px 1fr 60px;gap:8px;align-items:center">
+          <div>Min Tokens (minimální délka)</div>
+          <input type="range" id="ms_min_tokens" min="1" max="512" step="1" oninput="updateAdvLabels()">
+          <div id="ms_min_tokens_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Minimální délka odpovědi v tokenech. Zabrání příliš krátkým odpovědím.</div>
+
+          <div>Context Window (velikost kontextu)</div>
+          <input type="range" id="ms_context_window" min="512" max="32768" step="512" oninput="updateAdvLabels()">
+          <div id="ms_context_window_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Velikost kontextu pro paměť. Vyšší hodnoty = lepší dlouhodobá paměť.</div>
+        </div>
+      </div>
+
+      <div class="settings-card" style="grid-column:1 / -1">
+        <h4>🎯 Pokročilé techniky kontroly kvality</h4>
+        <div class="small" style="display:grid;grid-template-columns:180px 1fr 60px;gap:8px;align-items:center">
+          <div>MiroStat Mode (0-2)</div>
+          <input type="range" id="ms_mirostat_mode" min="0" max="2" step="1" oninput="updateAdvLabels()">
+          <div id="ms_mirostat_mode_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Inteligentní kontrola kvality odpovědí. 0=vypnuto, 1=v1, 2=v2.</div>
+
+          <div>MiroStat Tau (1.0-10.0)</div>
+          <input type="range" id="ms_mirostat_tau" min="1.0" max="10.0" step="0.1" oninput="updateAdvLabels()">
+          <div id="ms_mirostat_tau_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Cílová hodnota perplexity pro MiroStat. Nižší = konzervativnější.</div>
+
+          <div>MiroStat Eta (0.01-1.0)</div>
+          <input type="range" id="ms_mirostat_eta" min="0.01" max="1.0" step="0.01" oninput="updateAdvLabels()">
+          <div id="ms_mirostat_eta_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Rychlost učení MiroStat. Vyšší hodnoty = rychlejší přizpůsobení.</div>
+
+          <div>Tail Free Sampling (0.0-1.0)</div>
+          <input type="range" id="ms_tfs_z" min="0.0" max="1.0" step="0.01" oninput="updateAdvLabels()">
+          <div id="ms_tfs_z_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Odstraňuje 'ocas' pravděpodobností. Vyšší hodnoty = méně halucinací.</div>
+
+          <div>Repetition Penalty Range (1-1024)</div>
+          <input type="range" id="ms_repetition_penalty_range" min="1" max="1024" step="1" oninput="updateAdvLabels()">
+          <div id="ms_repetition_penalty_range_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Rozsah kontroly opakování v tokenech. Vyšší hodnoty = širší kontrola.</div>
+        </div>
+      </div>
+
+      <div class="settings-card" style="grid-column:1 / -1">
+        <h4>🤖 System instrukce & prompty</h4>
+        <div class="small" style="margin-bottom:8px">
+          <label>System Prompt (základní instrukce):</label>
+          <textarea id="ms_system_prompt" rows="3" placeholder="Zadejte základní instrukce pro model..."></textarea>
+          <div class="note small" style="margin-top:4px">Tyto instrukce se předávají modelu při každé konverzaci.</div>
+        </div>
+        <div class="small">
+          <label>Custom Instructions (specifické instrukce):</label>
+          <textarea id="ms_custom_instructions" rows="2" placeholder="Specifické instrukce pro tento model..."></textarea>
+          <div class="note small" style="margin-top:4px">Dodatečné instrukce specifické pro tento model.</div>
+        </div>
+      </div>
+
+      <div class="settings-card" style="grid-column:1 / -1">
+        <h4>🎨 Preset profily</h4>
+        <div class="inline small">
+          <label><input type="radio" name="ms_preset" value="professional" onclick="applyPreset('professional')"> 💼 Profesionální</label>
+          <label><input type="radio" name="ms_preset" value="creative" onclick="applyPreset('creative')"> 🎨 Kreativní</label>
+          <label><input type="radio" name="ms_preset" value="technical" onclick="applyPreset('technical')"> 🔬 Technický</label>
+          <label><input type="radio" name="ms_preset" value="conversational" onclick="applyPreset('conversational')"> 💬 Konverzační</label>
+          <label><input type="radio" name="ms_preset" value="custom" onclick="applyPreset('custom')"> ⚙️ Vlastní</label>
+        </div>
+        <div class="note" style="margin-top:8px">
+          Preset profily automaticky nastaví optimální hodnoty parametrů pro daný typ použití.
+        </div>
+      </div>
+
+      <div class="settings-card" style="grid-column:1 / -1">
+        <h4>⚙️ Základní pokročilé parametry</h4>
+        <div class="inline small" style="margin-bottom:8px">
+          <label><input type="checkbox" id="ms_adv_enable" onchange="setAdvEnabled(this.checked)"> Použít pokročilé hodnoty (přepíší výchozí z kategorií)</label>
+          <button class="btn btn-warning small" style="margin-left:auto" onclick="clearAdvancedValues()">🧹 Vyčistit číselné hodnoty</button>
+        </div>
+        <div class="small" style="display:grid;grid-template-columns:180px 1fr 60px;gap:8px;align-items:center">
+          <div>Teplota (temperature)</div>
+          <input type="range" id="ms_temp" min="0.0" max="2.0" step="0.01" oninput="updateAdvLabels()">
+          <div id="ms_temp_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Nastavuje míru náhodnosti generování. Nižší hodnoty = přesnější odpovědi.</div>
+
+          <div>Top-P</div>
+          <input type="range" id="ms_top_p" min="0.1" max="1.0" step="0.01" oninput="updateAdvLabels()">
+          <div id="ms_top_p_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Jaderní pravděpodobnost - kolik největších možností zvážit.</div>
+
+          <div>Top-K</div>
+          <input type="range" id="ms_top_k" min="1" max="100" step="1" oninput="updateAdvLabels()">
+          <div id="ms_top_k_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Počet nejlepších možností k výběru.</div>
+
+          <div>Repeat Penalty</div>
+          <input type="range" id="ms_repeat_penalty" min="1.00" max="2.00" step="0.01" oninput="updateAdvLabels()">
+          <div id="ms_repeat_penalty_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Trest za opakování slov - vyšší = méně opakování.</div>
+
+          <div>Typical-P</div>
+          <input type="range" id="ms_typical_p" min="0.00" max="1.00" step="0.01" oninput="updateAdvLabels()">
+          <div id="ms_typical_p_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Typická pravděpodobnost - redukuje divné odpovědi.</div>
+
+          <div>Max Tokens</div>
+          <input type="range" id="ms_max_tokens" min="32" max="4096" step="1" oninput="updateAdvLabels()">
+          <div id="ms_max_tokens_val" style="text-align:right">—</div>
+          <div class="note small" style="grid-column:1 / -1;margin-top:6px">Maximální délka odpovědi v tokenech.</div>
+        </div>
+        <div class="note" style="margin-top:8px">
+          Když je „Pokročilé" vypnuté, používají se hodnoty odvozené z kategorií. Zapnutím získáte plnou kontrolu.
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h4>Rychlý test</h4>
+        <textarea id="ms_test_prompt" rows="4" placeholder="Zadejte krátký dotaz pro ověření chování nastavení..."></textarea>
+        <div class="modal-buttons" style="justify-content:flex-start;margin-top:8px">
+          <button class="btn" onclick="quickTestSettings()">▶️ Vyzkoušet</button>
+        </div>
+        <pre id="ms_test_out" style="max-height:160px;overflow:auto"></pre>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn" onclick="resetRecommended()">🔄 Reset na doporučené</button>
+      <button class="btn btn-success" onclick="saveModelSettings()">💾 Uložit pro tento model</button>
+      <button class="btn" onclick="closeModelSettings()">Zavřít</button>
+    </div>
+    <div class="note">Poznámka: „Uložit“ zapisuje do brain/config/models/<model>.yml. Rychlý test volá /api/models/llm/generate s aktuálními volbami.</div>
+  </div>
+</div>
+
+<script>
+let isGenerating = false;
+let currentRequest = null;
+let modelToDelete = null;
+let currentSessionId = null;
+let sessions = [];
+let pendingModelSwitch = null;
+let abortController = null;
+
+// ===== Sessions =====
+async function loadSessions() {
+  try {
+    const r = await fetch('/api/chat/sessions/list');
+    const d = await r.json();
+    sessions = d.sessions || [];
+    renderSessionsList();
+  } catch (error) {
+    console.error('Error loading sessions:', error);
+  }
+}
+function renderSessionsList() {
+  const list = document.getElementById('sessionsList');
+  list.innerHTML = '';
+  if (sessions.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:#8bd0ff;font-size:11px;padding:16px">Žádné sessions</div>';
+    return;
+  }
+  sessions.forEach(session => {
+    const item = document.createElement('div');
+    item.className = 'session-item' + (session.session_id === currentSessionId ? ' active' : '');
+    item.onclick = () => switchToSession(session.session_id);
+    const title = session.title || 'Nová session';
+    const messageCount = session.message_count || 0;
+    const lastActivity = new Date(session.last_active).toLocaleString('cs-CZ');
+    item.innerHTML = `
+      <div class="session-title">${title}</div>
+      <div class="session-info">${messageCount} zpráv • ${lastActivity}</div>
+      <div class="session-model">Model: ${session.model_name || 'Žádný'}</div>
+    `;
+    list.appendChild(item);
+  });
+}
+async function createNewSession(firstQuestion = 'Nová konverzace') {
+  const model = document.getElementById('model').value;
+  if (!model) { push('assistant','Prosím vyberte model před vytvořením nové session.'); return; }
+  try {
+    const r = await fetch('/api/chat/sessions/create', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model_name: model, first_question: firstQuestion })
+    });
+    const d = await r.json();
+    if (d.ok && d.session && d.session.session_id) {
+      currentSessionId = d.session.session_id;
+      await loadSessions(); clearMessages(); updateSessionHeader();
+      push('assistant', `Nová session vytvořena s modelem ${model}. Můžete začít konverzaci!`);
+    } else { push('assistant','Chyba: nepodařilo se vytvořit session.'); }
+  } catch (e) { push('assistant','Chyba při vytváření session: ' + e.message); }
+}
+async function switchToSession(sessionId) {
+  if (sessionId === currentSessionId) return;
+  currentSessionId = sessionId;
+  await loadSessionHistory();
+  renderSessionsList();
+  updateSessionHeader();
+}
+async function loadSessionHistory() {
+  if (!currentSessionId) return;
+  try {
+    const r = await fetch(`/api/chat/sessions/${currentSessionId}/history`);
+    const d = await r.json();
+    clearMessages();
+    if (d.messages && d.messages.length > 0) {
+      d.messages.forEach(msg => { push(msg.role, msg.content, false); });
+    }
+    const session = sessions.find(s => s.session_id === currentSessionId);
+    if (session && session.model_name) { document.getElementById('model').value = session.model_name; }
+  } catch (e) { push('assistant','Chyba při načítání historie session: ' + e.message); }
+}
+function updateSessionHeader() {
+  const session = sessions.find(s => s.session_id === currentSessionId);
+  if (session) {
+    document.getElementById('currentSessionTitle').textContent = session.title || 'Nová session';
+    document.getElementById('currentSessionModel').textContent = session.model_name || 'Žádný model';
+  } else {
+    document.getElementById('currentSessionTitle').textContent = 'Žádná session';
+    document.getElementById('currentSessionModel').textContent = 'Žádný model';
+  }
+}
+function clearMessages(){ document.getElementById('msgs').innerHTML=''; }
+
+// ===== Model switching =====
+function onModelChange() {
+  const newModel = document.getElementById('model').value;
+  if (!newModel || !currentSessionId) return;
+  const currentSession = sessions.find(s => s.session_id === currentSessionId);
+  if (currentSession && currentSession.model_name !== newModel) {
+    pendingModelSwitch = newModel;
+    document.getElementById('switchSessionTitle').textContent = currentSession.title || 'Aktuální session';
+    document.getElementById('switchNewModel').textContent = newModel;
+    document.getElementById('modelSwitchModal').style.display='block';
+  }
+}
+async function switchModelKeepSession() {
+  closeModelSwitchModal();
+  try {
+    const r = await fetch(`/api/chat/sessions/${currentSessionId}/model`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model_name: pendingModelSwitch })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      push('assistant', `Model změněn na ${pendingModelSwitch} pro aktuální session.`);
+      await loadSessions(); updateSessionHeader();
+    } else {
+      push('assistant', `Chyba při změně modelu: ${d.error}`);
+    }
+  } catch (e) {
+    push('assistant', `Chyba při změně modelu: ${e.message}`);
+  }
+}
+async function switchModelNewSession() {
+  closeModelSwitchModal();
+  try {
+    const r = await fetch('/api/chat/sessions/create', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model_name: pendingModelSwitch, first_question:'Nová konverzace' })
+    });
+    const d = await r.json();
+    if (d.ok && d.session && d.session.session_id) {
+      currentSessionId = d.session.session_id;
+      await loadSessions(); clearMessages(); updateSessionHeader();
+      push('assistant', `Nová session vytvořena s modelem ${pendingModelSwitch}.`);
+    }
+  } catch (e) { push('assistant','Chyba při vytváření nové session: ' + e.message); }
+}
+function closeModelSwitchModal() {
+  document.getElementById('modelSwitchModal').style.display='none';
+  const currentSession = sessions.find(s => s.session_id === currentSessionId);
+  if (currentSession && currentSession.model_name) { document.getElementById('model').value = currentSession.model_name; }
+  pendingModelSwitch = null;
+}
+
+// ===== Global search =====
+async function performGlobalSearch() {
+  const query = document.getElementById('globalSearch').value.trim();
+  if (!query) return;
+  try {
+    const r = await fetch('/api/chat/sessions/search', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ query })
+    });
+    const d = await r.json();
+    displaySearchResults(d.results || [], query);
+  } catch (e) { console.error('Search error:', e); }
+}
+function displaySearchResults(results, query) {
+  const container = document.getElementById('searchResults');
+  container.innerHTML = '';
+  if (results.length === 0) {
+    container.innerHTML = '<div style="padding:12px;text-align:center;color:#8bd0ff">Žádné výsledky</div>';
+    container.style.display='block'; return;
+  }
+  results.forEach(result => {
+    const message = result.message || {};
+    const sessionInfo = result.session_info || {};
+    const item = document.createElement('div');
+    item.className='search-result';
+    item.onclick = () => { if (message.session_id) { switchToSession(message.session_id); container.style.display='none'; } };
+    const highlightedContent = highlightSearchTerms(message.content || '', query);
+    item.innerHTML = `
+      <div style="font-weight:bold;margin-bottom:4px">${sessionInfo.title || 'Bez názvu'}</div>
+      <div style="color:#9fd2ff;margin-bottom:4px">${(message.role==='user')?'Uživatel':'Virgil'}: ${highlightedContent}</div>
+      <div style="color:#8bd0ff;font-size:10px">${message.timestamp ? new Date(message.timestamp).toLocaleString('cs-CZ') : ''}</div>
+    `;
+    container.appendChild(item);
+  });
+  container.style.display='block';
+}
+function highlightSearchTerms(text, query){ const regex=new RegExp(`(${query})`,'gi'); return text.replace(regex,'<span class="search-highlight">$1</span>'); }
+
+// ===== Chat =====
+async function send() {
+  const text = document.getElementById('input').value.trim();
+  const model = document.getElementById('model').value;
+  if (!text || isGenerating) return;
+  if (!model) { push('assistant','Prosím vyberte model před odesláním zprávy.'); return; }
+  if (!currentSessionId) { await createNewSession(text); if (!currentSessionId) return; }
+
+  push('user', text);
+  document.getElementById('input').value='';
+
+  isGenerating = true;
+  document.getElementById('sendBtn').style.display='none';
+  document.getElementById('stopBtn').style.display='block';
+  document.getElementById('generatingIndicator').style.display='block';
+
+  const assistantMsg = push('assistant','');
+  assistantMsg.classList.add('generating');
+  assistantMsg.querySelector('div:last-child').textContent = 'Přemýšlím...';
+
+  try {
+    abortController = new AbortController();
+    const r = await fetch(`/api/chat/sessions/${currentSessionId}/message`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id: currentSessionId, message: text }),
+      signal: abortController.signal
+    });
+    if (!r.ok) {
+      assistantMsg.classList.remove('generating');
+      assistantMsg.querySelector('div:last-child').textContent = 'Chyba: ' + r.status + ' ' + r.statusText;
+      isGenerating = false;
+      document.getElementById('sendBtn').style.display='block';
+      document.getElementById('stopBtn').style.display='none';
+      document.getElementById('generatingIndicator').style.display='none';
+      currentRequest = null; abortController = null;
+      return;
+    }
+    const d = await r.json();
+    assistantMsg.classList.remove('generating');
+    const reply = (d && d.assistant_message && d.assistant_message.content) ? d.assistant_message.content : '[Bez odpovědi]';
+    assistantMsg.querySelector('div:last-child').textContent = reply;
+    await loadSessions(); updateSessionHeader();
+  } catch (error) {
+    assistantMsg.classList.remove('generating');
+    assistantMsg.querySelector('div:last-child').textContent = (error.name==='AbortError') ? 'Generování bylo přerušeno.' : ('Chyba: ' + error.message);
+  } finally {
+    isGenerating = false;
+    document.getElementById('sendBtn').style.display='block';
+    document.getElementById('stopBtn').style.display='none';
+    document.getElementById('generatingIndicator').style.display='none';
+    currentRequest = null; abortController = null;
+  }
+}
+function stopGeneration() {
+  if (abortController) abortController.abort();
+  isGenerating = false;
+  document.getElementById('sendBtn').style.display='block';
+  document.getElementById('stopBtn').style.display='none';
+  document.getElementById('generatingIndicator').style.display='none';
+  push('assistant', 'Generování bylo přerušeno uživatelem.');
+}
+
+// ===== Paměť =====
+async function saveMem() {
+  const title = document.getElementById('memTitle').value;
+  const tags = document.getElementById('memTags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const text = document.getElementById('memText').value;
+  const to_memory = document.getElementById('toMem').checked;
+  const encrypt = document.getElementById('enc').checked;
+  const passphrase = document.getElementById('pass').value || null;
+  if (!title || !text) { push('assistant','Prosím vyplňte název a text poznámky.'); return; }
+  await fetch('/api/brain/memory/save', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ title, tags, text, mtype:'note', to_memory, encrypt, passphrase })
+  });
+  document.getElementById('memTitle').value=''; document.getElementById('memTags').value=''; document.getElementById('memText').value='';
+  push('assistant','Poznámka byla uložena do paměti.');
+}
+async function loadMem() {
+  const r = await fetch('/api/brain/memory');
+  const d = await r.json();
+  document.getElementById('memOut').textContent = JSON.stringify(d,null,2);
+}
+
+// ===== Zařízení a app settings =====
+async function loadComputeDevices() {
+  try {
+    const r = await fetch('/api/compute/devices');
+    const d = await r.json();
+    if (d.ok) {
+      const sel = document.getElementById('computeBackend');
+      const currentValue = sel.value;
+      sel.innerHTML='';
+      sel.innerHTML += '<option value="cpu">💻 Procesor (CPU) - úspora energie</option>';
+      sel.innerHTML += '<option value="auto">🎯 Automaticky (nejrychlejší dostupné)</option>';
+      d.devices.forEach(device => {
+        if (device.available && device.id !== 'cpu') sel.innerHTML += `<option value="${device.id}">🚀 ${device.name}</option>`;
+      });
+      sel.value = currentValue;
+      updateDeviceStatus(d.devices);
+    } else { document.getElementById('deviceStatus').innerHTML = '<span class="status-error">Chyba načítání zařízení</span>'; }
+  } catch (e) { document.getElementById('deviceStatus').innerHTML = '<span class="status-error">Chyba: ' + e.message + '</span>'; }
+}
+function updateDeviceStatus(devices) {
+  const status = document.getElementById('deviceStatus');
+  const available = devices.filter(d=>d.available);
+  const gpuAvailable = devices.some(d=>d.available && d.id!=='cpu');
+  status.innerHTML = gpuAvailable
+    ? `<span class="status-ok">✅ GPU dostupné (${available.length} zařízení)</span>`
+    : `<span class="status-warning">⚠️ Pouze CPU (${available.length} zařízení)</span>`;
+}
+async function loadSettings() {
+  const r = await fetch('/api/settings');
+  const d = await r.json();
+  document.getElementById('computeBackend').value = d.compute_backend || 'cpu';
+  document.getElementById('onlineMode').checked = d.online_mode || false;
+  loadComputeDevices();
+}
+async function saveSettings() {
+  const computeBackend = document.getElementById('computeBackend').value;
+  const onlineMode = document.getElementById('onlineMode').checked;
+  await fetch('/api/settings', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ theme:'dark', device:'desktop', selected_model:'', llm_mode:'active', compute_backend:computeBackend, online_mode:onlineMode })
+  });
+  const deviceName = getDeviceName(computeBackend);
+  push('assistant', `Nastavení uloženo: ${deviceName}, online režim: ${onlineMode ? 'povolen' : 'zakázán'}`);
+}
+function getDeviceName(deviceId) {
+  const sel = document.getElementById('computeBackend');
+  for (let option of sel.options) { if (option.value === deviceId) return option.textContent; }
+  return deviceId;
+}
+function handleKeyDown(event){ if (event.key==='Enter' && !event.shiftKey){ event.preventDefault(); send(); } }
+
+// ===== Správa modelů =====
+async function loadModels(){
+  const r = await fetch('/api/models/list');
+  const d = await r.json();
+  const sel = document.getElementById('model');
+  sel.innerHTML = '';
+  if (!d.llm || d.llm.length === 0) {
+    const o=document.createElement('option'); o.value=''; o.textContent='Žádné modely nenalezeny'; sel.appendChild(o); return;
+  }
+  d.llm.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+}
+async function showModelManager() {
+  const r = await fetch('/api/models/list');
+  const d = await r.json();
+  const list = document.getElementById('modelManagerList');
+  list.innerHTML = '';
+  if (!d.llm || d.llm.length===0) {
+    list.innerHTML = '<p>Žádné modely nenalezeny.</p>';
+  } else {
+    d.llm.forEach(model => {
+      const item = document.createElement('div');
+      item.className='model-item';
+      item.innerHTML = `
+        <div>
+          <div class="model-name">${model}</div>
+          <div class="model-info">Soubor modelu</div>
+        </div>
+        <button class="delete-btn" onclick="showDeleteModal('${model}')">🗑️ Smazat</button>
+      `;
+      list.appendChild(item);
+    });
+  }
+  document.getElementById('modelModal').style.display='block';
+}
+function closeModelManager(){ document.getElementById('modelModal').style.display='none'; }
+function showDeleteModal(modelName){ modelToDelete=modelName; document.getElementById('deleteModelName').textContent=modelName; document.getElementById('deleteModal').style.display='block'; }
+function closeDeleteModal(){ document.getElementById('deleteModal').style.display='none'; modelToDelete=null; }
+async function confirmDelete() {
+  if (!modelToDelete) return;
+  try {
+    const r = await fetch('/api/models/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model_name:modelToDelete}) });
+    const d = await r.json();
+    if (d.ok) { push('assistant', `Model ${modelToDelete} byl úspěšně smazán.`); loadModels(); showModelManager(); }
+    else { push('assistant', `Chyba při mazání modelu: ${d.error}`); }
+  } catch (e) { push('assistant', `Chyba při mazání modelu: ${e.message}`); }
+  closeDeleteModal();
+}
+
+// ===== HF vyhledávání/stahování =====
+async function searchModels() {
+  const query = document.getElementById('searchQuery').value.trim();
+  if (!query) { push('assistant','Zadejte název modelu pro vyhledání'); return; }
+  document.getElementById('downloadOut').textContent = 'Vyhledávám modely...';
+  const r = await fetch('/api/models/search_hf', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, limit:10}) });
+  const d = await r.json();
+  if (d.ok) {
+    const browser=document.getElementById('modelBrowser'); const list=document.getElementById('modelList'); list.innerHTML='';
+    d.models.forEach(model => {
+      const item=document.createElement('div');
+      item.style.cssText='padding:12px;margin:8px 0;border:1px solid #1b2a37;border-radius:8px;cursor:pointer;background:#0e141b;transition:background .2s';
+      item.innerHTML = `
+        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">${model.id}</div>
+        <div style="font-size:11px;color:#9fd2ff;margin-bottom:6px">${model.description||''}</div>
+        <div style="font-size:10px;color:#8bd0ff">${model.downloads} stažení</div>
+      `;
+      item.onmouseover=()=>item.style.background='#1a2332';
+      item.onmouseout=()=>item.style.background='#0e141b';
+      item.onclick=()=>browseModelRepo(model.repo_url);
+      list.appendChild(item);
+    });
+    browser.style.display='block';
+    document.getElementById('downloadOut').textContent = `Nalezeno ${d.models.length} modelů pro "${query}"`;
+  } else { document.getElementById('downloadOut').textContent = 'Chyba: ' + d.error; }
+}
+async function browseRepo() {
+  const url=document.getElementById('hfUrl').value.trim();
+  if (!url) { push('assistant','Zadejte HuggingFace repository URL'); return; }
+  browseModelRepo(url);
+}
+async function browseModelRepo(repoUrl) {
+  document.getElementById('downloadOut').textContent = 'Načítám dostupné soubory...';
+  const r = await fetch('/api/models/browse_hf_repo', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({repo_url:repoUrl}) });
+  const d = await r.json();
+  if (d.ok) {
+    const list=document.getElementById('modelList'); list.innerHTML='';
+    d.models.forEach(model => {
+      const item=document.createElement('div');
+      item.style.cssText='padding:8px;margin:4px 0;border:1px solid #1b2a37;border-radius:8px;cursor:pointer;background:#0e141b';
+      item.innerHTML = `
+        <div style="font-weight:bold">${model.filename}</div>
+        <div style="font-size:11px;color:#8bd0ff;margin:4px 0">${(model.capabilities||[]).map(c=>'<span class="tag">'+c+'</span>').join(' ')}</div>
+        <div style="font-size:11px;color:#9fd2ff">${model.size_mb} MB • ${model.format}</div>
+      `;
+      item.onclick=()=>downloadFromBrowser(model.download_url, model.filename);
+      list.appendChild(item);
+    });
+    document.getElementById('downloadOut').textContent = `Nalezeno ${d.models.length} souborů v ${d.repo}`;
+  } else { document.getElementById('downloadOut').textContent = 'Chyba: ' + d.error; }
+}
+async function downloadFromBrowser(url, filename) {
+  const progressBar=document.createElement('div');
+  progressBar.innerHTML = '<div style="background:#1b2a37;border-radius:10px;padding:2px;margin:8px 0"><div id="progressFill" style="background:#0f6abf;height:20px;border-radius:8px;width:0%;transition:width .3s;text-align:center;line-height:20px;color:#fff;font-size:12px">0%</div></div>';
+  document.getElementById('downloadOut').innerHTML=''; document.getElementById('downloadOut').appendChild(progressBar);
+  const r = await fetch('/api/models/add_from_hf', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url, model_type:'llm', id:null}) });
+  const d = await r.json();
+  document.getElementById('progressFill').style.width='100%'; document.getElementById('progressFill').textContent='100%';
+  setTimeout(()=> {
+    document.getElementById('downloadOut').textContent = JSON.stringify(d,null,2);
+    if (d.ok) { push('assistant', `Model ${filename} stažen! Format: ${d.format}, Capabilities: ${(d.capabilities||[]).join(', ')}`); loadModels(); document.getElementById('modelBrowser').style.display='none'; }
+    else { push('assistant', 'Chyba stahování: ' + d.error); }
+  }, 800);
+}
+async function downloadDirect() {
+  const url=document.getElementById('hfUrl').value.trim();
+  if (!url) { push('assistant','Zadejte přímý URL souboru'); return; }
+  const progressBar=document.createElement('div');
+  progressBar.innerHTML = '<div style="background:#1b2a37;border-radius:10px;padding:2px;margin:8px 0"><div id="progressFill" style="background:#0f6abf;height:20px;border-radius:8px;width:0%;transition:width .3s;text-align:center;line-height:20px;color:#fff;font-size:12px">0%</div></div>';
+  document.getElementById('downloadOut').innerHTML=''; document.getElementById('downloadOut').appendChild(progressBar);
+  const r = await fetch('/api/models/add_from_hf', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url, model_type:'llm', id:null}) });
+  const d = await r.json();
+  document.getElementById('progressFill').style.width='100%'; document.getElementById('progressFill').textContent='100%';
+  setTimeout(()=> {
+    document.getElementById('downloadOut').textContent = JSON.stringify(d,null,2);
+    if (d.ok) { push('assistant', 'Model stažen: ' + d.message + ' (' + d.format + ', ' + (d.capabilities||[]).join(', ') + ')'); loadModels(); }
+    else { push('assistant', 'Chyba stahování: ' + d.error); }
+  }, 800);
+}
+
+// ===== Modal: Nastavení modelu =====
+function showModelSettings() {
+  const model = document.getElementById('model').value;
+  if (!model) { push('assistant','Nejprve vyberte model.'); return; }
+  document.getElementById('msActiveModel').textContent = model;
+  document.getElementById('ms_test_out').textContent = '';
+  // Načíst uložené hodnoty
+  fetch(`/api/models/settings?model=${encodeURIComponent(model)}`)
+    .then(r=>r.json())
+    .then(d=>{
+      if (d.ok && d.settings) { applyModelSettingsToUI(d.settings); }
+      else { applyModelSettingsToUI(getRecommendedDefaults()); }
+      document.getElementById('modelSettingsModal').style.display='block';
+    })
+    .catch(_=>{ applyModelSettingsToUI(getRecommendedDefaults()); document.getElementById('modelSettingsModal').style.display='block'; });
+}
+function closeModelSettings(){ document.getElementById('modelSettingsModal').style.display='none'; }
+function getRecommendedDefaults() {
+  return {
+    style:'precise', response_mode:'free', length:'medium', repetition:'medium', stability:'normal',
+    language_cz:true, no_meta:true,
+    temperature:null, top_p:null, top_k:null, repeat_penalty:null, typical_p:null, max_tokens:null
+  };
+}
+
+function computeEffectiveFromCategories(s) {
+  // výchozí podle kategorií (viz backend map_settings_to_engine_params)
+  let temperature = 0.3, top_p = 0.90, top_k = 40, repeat_penalty = 1.15;
+  if ((s.style||'precise') === 'balanced') { temperature = 0.5; top_p = 0.95; top_k = 60; }
+  if ((s.style||'precise') === 'creative') { temperature = 0.8; top_p = 0.97; top_k = 80; }
+  if ((s.repetition||'medium') === 'gentle') { repeat_penalty = 1.05; }
+  if ((s.repetition||'medium') === 'strict') { repeat_penalty = 1.25; }
+  let typical_p = (s.stability === 'stable') ? 0.95 : null;
+  let max_tokens = 256;
+  if ((s.length||'medium') === 'short') max_tokens = 120;
+  if ((s.length||'medium') === 'long') max_tokens = 512;
+  return { temperature, top_p, top_k, repeat_penalty, typical_p, max_tokens };
+}
+function setAdvEnabled(enabled) {
+  const ids = [
+    'ms_temp','ms_top_p','ms_top_k','ms_repeat_penalty','ms_typical_p','ms_max_tokens',
+    'ms_min_p','ms_presence_penalty','ms_frequency_penalty','ms_min_tokens','ms_context_window',
+    'ms_mirostat_mode','ms_mirostat_tau','ms_mirostat_eta','ms_tfs_z','ms_repetition_penalty_range'
+  ];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = !enabled; });
+  updateAdvLabels();
+}
+function updateAdvLabels() {
+  const enabled = document.getElementById('ms_adv_enable')?.checked;
+  const fmt = (v, digits=2) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(digits) : '—';
+  const labelSet = (id, val, suffix='') => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = (val === null) ? 'vyp' : (fmt(val, (id.includes('top_k')||id.includes('max_tokens')||id.includes('min_tokens')||id.includes('context_window')||id.includes('mirostat_mode')||id.includes('repetition_penalty_range'))?0:2) + suffix + (enabled ? '' : ' (auto)'));
+  };
+
+  // Základní parametry
+  const temp = parseFloat(document.getElementById('ms_temp')?.value || '0');
+  const top_p = parseFloat(document.getElementById('ms_top_p')?.value || '0');
+  const top_k = parseInt(document.getElementById('ms_top_k')?.value || '0', 10);
+  const rp = parseFloat(document.getElementById('ms_repeat_penalty')?.value || '0');
+  const typ = parseFloat(document.getElementById('ms_typical_p')?.value || '0');
+  const mt = parseInt(document.getElementById('ms_max_tokens')?.value || '0', 10);
+
+  // Nové parametry
+  const min_p = parseFloat(document.getElementById('ms_min_p')?.value || '0');
+  const presence_penalty = parseFloat(document.getElementById('ms_presence_penalty')?.value || '0');
+  const frequency_penalty = parseFloat(document.getElementById('ms_frequency_penalty')?.value || '0');
+  const min_tokens = parseInt(document.getElementById('ms_min_tokens')?.value || '0', 10);
+  const context_window = parseInt(document.getElementById('ms_context_window')?.value || '0', 10);
+  const mirostat_mode = parseInt(document.getElementById('ms_mirostat_mode')?.value || '0', 10);
+  const mirostat_tau = parseFloat(document.getElementById('ms_mirostat_tau')?.value || '0');
+  const mirostat_eta = parseFloat(document.getElementById('ms_mirostat_eta')?.value || '0');
+  const tfs_z = parseFloat(document.getElementById('ms_tfs_z')?.value || '0');
+  const repetition_penalty_range = parseInt(document.getElementById('ms_repetition_penalty_range')?.value || '0', 10);
+
+  // Nastav hodnoty
+  labelSet('ms_temp_val', temp);
+  labelSet('ms_top_p_val', top_p);
+  labelSet('ms_top_k_val', top_k);
+  labelSet('ms_repeat_penalty_val', rp);
+  labelSet('ms_typical_p_val', (typ === 0 ? null : typ));
+  labelSet('ms_max_tokens_val', mt);
+
+  labelSet('ms_min_p_val', min_p);
+  labelSet('ms_presence_penalty_val', presence_penalty);
+  labelSet('ms_frequency_penalty_val', frequency_penalty);
+  labelSet('ms_min_tokens_val', min_tokens);
+  labelSet('ms_context_window_val', context_window);
+  labelSet('ms_mirostat_mode_val', mirostat_mode);
+  labelSet('ms_mirostat_tau_val', mirostat_tau);
+  labelSet('ms_mirostat_eta_val', mirostat_eta);
+  labelSet('ms_tfs_z_val', tfs_z);
+  labelSet('ms_repetition_penalty_range_val', repetition_penalty_range);
+}
+function getCategoricalFromUI() {
+  const getCheckedVal = (name, defVal) => { const el=document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : defVal; };
+  return {
+    style: getCheckedVal('ms_style', 'precise'),
+    response_mode: getCheckedVal('ms_resp_mode', 'free'),
+    length: getCheckedVal('ms_length', 'medium'),
+    repetition: document.getElementById('ms_repetition').value || 'medium',
+    stability: getCheckedVal('ms_stability', 'normal'),
+    language_cz: document.getElementById('ms_lang_cz').checked,
+    no_meta: document.getElementById('ms_no_meta').checked
+  };
+}
+function applyPreset(preset) {
+  const presets = {
+    professional: {
+      style: 'precise', response_mode: 'structured', length: 'medium', repetition: 'medium', stability: 'stable',
+      language_cz: true, no_meta: true,
+      temperature: 0.3, top_p: 0.9, top_k: 40, min_p: 0.1, typical_p: 0.95,
+      repeat_penalty: 1.2, presence_penalty: 0.1, frequency_penalty: 0.1,
+      max_tokens: 256, min_tokens: 50, context_window: 4096,
+      mirostat_mode: 1, mirostat_tau: 5.0, mirostat_eta: 0.1, tfs_z: 1.0, repetition_penalty_range: 512,
+      system_prompt: 'Jsi profesionální AI asistent. Odpovídej vždy přesně, strukturovaně a užitečně.',
+      custom_instructions: 'Zaměř se na kvalitu a přesnost odpovědí.'
+    },
+    creative: {
+      style: 'creative', response_mode: 'free', length: 'long', repetition: 'gentle', stability: 'normal',
+      language_cz: true, no_meta: true,
+      temperature: 0.8, top_p: 0.95, top_k: 60, min_p: 0.05, typical_p: 0,
+      repeat_penalty: 1.1, presence_penalty: -0.1, frequency_penalty: -0.1,
+      max_tokens: 512, min_tokens: 100, context_window: 4096,
+      mirostat_mode: 0, mirostat_tau: 5.0, mirostat_eta: 0.1, tfs_z: 0, repetition_penalty_range: 256,
+      system_prompt: 'Jsi kreativní AI asistent. Buď originální a inspirativní ve svých odpovědích.',
+      custom_instructions: 'Zaměř se na kreativitu a nové nápady.'
+    },
+    technical: {
+      style: 'precise', response_mode: 'structured', length: 'long', repetition: 'strict', stability: 'stable',
+      language_cz: true, no_meta: true,
+      temperature: 0.1, top_p: 0.8, top_k: 30, min_p: 0.2, typical_p: 0.98,
+      repeat_penalty: 1.3, presence_penalty: 0.2, frequency_penalty: 0.2,
+      max_tokens: 1024, min_tokens: 200, context_window: 8192,
+      mirostat_mode: 2, mirostat_tau: 3.0, mirostat_eta: 0.05, tfs_z: 1.0, repetition_penalty_range: 1024,
+      system_prompt: 'Jsi technický AI asistent specializující se na programování a technické problémy.',
+      custom_instructions: 'Poskytuj detailní technické vysvětlení s příklady kódu.'
+    },
+    conversational: {
+      style: 'balanced', response_mode: 'free', length: 'medium', repetition: 'medium', stability: 'normal',
+      language_cz: true, no_meta: true,
+      temperature: 0.6, top_p: 0.92, top_k: 50, min_p: 0.1, typical_p: 0.9,
+      repeat_penalty: 1.15, presence_penalty: 0.05, frequency_penalty: 0.05,
+      max_tokens: 300, min_tokens: 50, context_window: 4096,
+      mirostat_mode: 1, mirostat_tau: 4.0, mirostat_eta: 0.1, tfs_z: 0, repetition_penalty_range: 256,
+      system_prompt: 'Jsi přátelský AI asistent pro každodenní konverzaci.',
+      custom_instructions: 'Buď přívětivý, empatický a udržuj přirozený tok konverzace.'
+    },
+    custom: {
+      style: 'precise', response_mode: 'free', length: 'medium', repetition: 'medium', stability: 'normal',
+      language_cz: true, no_meta: true,
+      temperature: null, top_p: null, top_k: null, min_p: 0, typical_p: 0,
+      repeat_penalty: null, presence_penalty: 0, frequency_penalty: 0,
+      max_tokens: null, min_tokens: 1, context_window: 4096,
+      mirostat_mode: 0, mirostat_tau: 5.0, mirostat_eta: 0.1, tfs_z: 1.0, repetition_penalty_range: 512,
+      system_prompt: null, custom_instructions: null
+    }
+  };
+
+  const settings = presets[preset];
+  if (settings) {
+    applyModelSettingsToUI(settings);
+    // Označ preset radio button
+    for (const el of document.querySelectorAll('input[name="ms_preset"]')) {
+      el.checked = (el.value === preset);
+    }
+  }
+}
+
+function applyModelSettingsToUI(s) {
+  // kategorické
+  for (const el of document.querySelectorAll('input[name="ms_style"]')) el.checked = (el.value === (s.style||'precise'));
+  for (const el of document.querySelectorAll('input[name="ms_resp_mode"]')) el.checked = (el.value === (s.response_mode||'free'));
+  for (const el of document.querySelectorAll('input[name="ms_length"]')) el.checked = (el.value === (s.length||'medium'));
+  document.getElementById('ms_repetition').value = s.repetition||'medium';
+  for (const el of document.querySelectorAll('input[name="ms_stability"]')) el.checked = (el.value === (s.stability||'normal'));
+  document.getElementById('ms_lang_cz').checked = (s.language_cz!==false);
+  document.getElementById('ms_no_meta').checked = (s.no_meta!==false);
+
+  // Preset profily
+  for (const el of document.querySelectorAll('input[name="ms_preset"]')) {
+    el.checked = (el.value === (s.preset_profile||'custom'));
+  }
+
+  // System instrukce
+  if (document.getElementById('ms_system_prompt')) {
+    document.getElementById('ms_system_prompt').value = s.system_prompt || '';
+  }
+  if (document.getElementById('ms_custom_instructions')) {
+    document.getElementById('ms_custom_instructions').value = s.custom_instructions || '';
+  }
+
+  // pokročilé: pokud jsou hodnoty uvedeny, povol a nastav; jinak zobraz doporučené (auto) a vypni
+  const hasAdvanced = [s.temperature,s.top_p,s.top_k,s.repeat_penalty,s.typical_p,s.max_tokens,s.min_p,s.presence_penalty,s.frequency_penalty,s.min_tokens,s.context_window,s.mirostat_mode,s.tfs_z].some(v => v !== null && v !== undefined && v !== 0);
+  const advChk = document.getElementById('ms_adv_enable');
+  const setSlider = (id, v, def=0) => { const el=document.getElementById(id); if (el && typeof v === 'number') el.value = v; else if (el) el.value = def; };
+
+  if (hasAdvanced) {
+    // Základní parametry
+    if (typeof s.temperature === 'number') setSlider('ms_temp', s.temperature, 0.5);
+    if (typeof s.top_p === 'number') setSlider('ms_top_p', s.top_p, 0.9);
+    if (typeof s.top_k === 'number') setSlider('ms_top_k', s.top_k, 40);
+    if (typeof s.repeat_penalty === 'number') setSlider('ms_repeat_penalty', s.repeat_penalty, 1.15);
+    setSlider('ms_typical_p', (typeof s.typical_p === 'number' ? s.typical_p : 0), 0);
+    if (typeof s.max_tokens === 'number') setSlider('ms_max_tokens', s.max_tokens, 256);
+
+    // Nové parametry
+    setSlider('ms_min_p', (typeof s.min_p === 'number' ? s.min_p : 0), 0);
+    setSlider('ms_presence_penalty', (typeof s.presence_penalty === 'number' ? s.presence_penalty : 0), 0);
+    setSlider('ms_frequency_penalty', (typeof s.frequency_penalty === 'number' ? s.frequency_penalty : 0), 0);
+    setSlider('ms_min_tokens', (typeof s.min_tokens === 'number' ? s.min_tokens : 1), 1);
+    setSlider('ms_context_window', (typeof s.context_window === 'number' ? s.context_window : 4096), 4096);
+    setSlider('ms_mirostat_mode', (typeof s.mirostat_mode === 'number' ? s.mirostat_mode : 0), 0);
+    setSlider('ms_mirostat_tau', (typeof s.mirostat_tau === 'number' ? s.mirostat_tau : 5.0), 5.0);
+    setSlider('ms_mirostat_eta', (typeof s.mirostat_eta === 'number' ? s.mirostat_eta : 0.1), 0.1);
+    setSlider('ms_tfs_z', (typeof s.tfs_z === 'number' ? s.tfs_z : 1.0), 1.0);
+    setSlider('ms_repetition_penalty_range', (typeof s.repetition_penalty_range === 'number' ? s.repetition_penalty_range : 512), 512);
+
+    if (advChk) advChk.checked = true;
+    setAdvEnabled(true);
+  } else {
+    // nastav doporučené podle kategorií
+    const eff = computeEffectiveFromCategories(s);
+    setSlider('ms_temp', eff.temperature, 0.5);
+    setSlider('ms_top_p', eff.top_p, 0.9);
+    setSlider('ms_top_k', eff.top_k, 40);
+    setSlider('ms_repeat_penalty', eff.repeat_penalty, 1.15);
+    setSlider('ms_typical_p', eff.typical_p ? eff.typical_p : 0, 0);
+    setSlider('ms_max_tokens', eff.max_tokens, 256);
+
+    // Výchozí hodnoty pro nové parametry
+    setSlider('ms_min_p', 0, 0);
+    setSlider('ms_presence_penalty', 0, 0);
+    setSlider('ms_frequency_penalty', 0, 0);
+    setSlider('ms_min_tokens', 1, 1);
+    setSlider('ms_context_window', 4096, 4096);
+    setSlider('ms_mirostat_mode', 0, 0);
+    setSlider('ms_mirostat_tau', 5.0, 5.0);
+    setSlider('ms_mirostat_eta', 0.1, 0.1);
+    setSlider('ms_tfs_z', 1.0, 1.0);
+    setSlider('ms_repetition_penalty_range', 512, 512);
+
+    if (advChk) advChk.checked = false;
+    setAdvEnabled(false);
+  }
+  updateAdvLabels();
+}
+function collectModelSettingsFromUI() {
+  const getCheckedVal = (name) => { const el=document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : null; };
+  const base = {
+    style: getCheckedVal('ms_style') || 'precise',
+    response_mode: getCheckedVal('ms_resp_mode') || 'free',
+    length: getCheckedVal('ms_length') || 'medium',
+    repetition: document.getElementById('ms_repetition').value || 'medium',
+    stability: getCheckedVal('ms_stability') || 'normal',
+    language_cz: document.getElementById('ms_lang_cz').checked,
+    no_meta: document.getElementById('ms_no_meta').checked,
+
+    // ===== NOVÉ PARAMETRY =====
+    // Teplota & diverzita
+    min_p: parseFloat(document.getElementById('ms_min_p')?.value || '0'),
+    presence_penalty: parseFloat(document.getElementById('ms_presence_penalty')?.value || '0'),
+    frequency_penalty: parseFloat(document.getElementById('ms_frequency_penalty')?.value || '0'),
+
+    // Délka & kontext
+    min_tokens: parseInt(document.getElementById('ms_min_tokens')?.value || '1', 10),
+    context_window: parseInt(document.getElementById('ms_context_window')?.value || '4096', 10),
+
+    // Pokročilé techniky
+    mirostat_mode: parseInt(document.getElementById('ms_mirostat_mode')?.value || '0', 10),
+    mirostat_tau: parseFloat(document.getElementById('ms_mirostat_tau')?.value || '5.0'),
+    mirostat_eta: parseFloat(document.getElementById('ms_mirostat_eta')?.value || '0.1'),
+    tfs_z: parseFloat(document.getElementById('ms_tfs_z')?.value || '1.0'),
+    repetition_penalty_range: parseInt(document.getElementById('ms_repetition_penalty_range')?.value || '512', 10),
+
+    // System & instrukce
+    system_prompt: document.getElementById('ms_system_prompt')?.value?.trim() || null,
+    custom_instructions: document.getElementById('ms_custom_instructions')?.value?.trim() || null,
+
+    // Preset profily
+    preset_profile: getCheckedVal('ms_preset') || null
+  };
+
+  const adv = document.getElementById('ms_adv_enable')?.checked;
+  if (adv) {
+    base.temperature = parseFloat(document.getElementById('ms_temp').value);
+    base.top_p = parseFloat(document.getElementById('ms_top_p').value);
+    base.top_k = parseInt(document.getElementById('ms_top_k').value, 10);
+    base.repeat_penalty = parseFloat(document.getElementById('ms_repeat_penalty').value);
+    const typ = parseFloat(document.getElementById('ms_typical_p').value);
+    base.typical_p = (typ <= 0 ? 0.0 : typ);
+    base.max_tokens = parseInt(document.getElementById('ms_max_tokens').value, 10);
+  } else {
+    base.temperature = null;
+    base.top_p = null;
+    base.top_k = null;
+    base.repeat_penalty = null;
+    base.typical_p = null;
+    base.max_tokens = null;
+  }
+  return base;
+}
+function clearAdvancedValues() {
+  const s = getCategoricalFromUI();
+  const eff = computeEffectiveFromCategories(s);
+  const setSlider = (id, v) => { const el=document.getElementById(id); if (el && typeof v === 'number') el.value = v; };
+  setSlider('ms_temp', eff.temperature);
+  setSlider('ms_top_p', eff.top_p);
+  setSlider('ms_top_k', eff.top_k);
+  setSlider('ms_repeat_penalty', eff.repeat_penalty);
+  setSlider('ms_typical_p', eff.typical_p ? eff.typical_p : 0);
+  setSlider('ms_max_tokens', eff.max_tokens);
+  const advChk = document.getElementById('ms_adv_enable'); if (advChk) advChk.checked = false;
+  setAdvEnabled(false);
+  updateAdvLabels();
+}
+async function saveModelSettings() {
+  const model = document.getElementById('model').value;
+  if (!model) { push('assistant','Nejprve vyberte model.'); return; }
+  const settings = collectModelSettingsFromUI();
+  const r = await fetch('/api/models/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model_id:model, settings }) });
+  const d = await r.json();
+  if (d.ok) push('assistant','Nastavení uloženo pro model: ' + model);
+  else push('assistant','Chyba ukládání: ' + (d.error||'neznámá chyba'));
+}
+async function resetRecommended() {
+  applyModelSettingsToUI(getRecommendedDefaults());
+  await saveModelSettings();
+}
+async function quickTestSettings() {
+  const model = document.getElementById('model').value;
+  if (!model) { push('assistant','Nejprve vyberte model.'); return; }
+  const prompt = document.getElementById('ms_test_prompt').value.trim();
+  if (!prompt) { document.getElementById('ms_test_out').textContent = 'Zadejte text pro rychlý test.'; return; }
+  // Ulož aktuální volby a poté proveď generování přes /api/models/llm/generate (ten už přidá --settings-file)
+  await saveModelSettings();
+  document.getElementById('ms_test_out').textContent = '⏳ Testuji...';
+  try {
+    const r = await fetch('/api/models/llm/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model_id:model, prompt, params:{} })
+    });
+    const d = await r.json();
+    document.getElementById('ms_test_out').textContent = (d && typeof d.text === 'string') ? d.text : JSON.stringify(d,null,2);
+  } catch (e) {
+    document.getElementById('ms_test_out').textContent = 'Chyba testu: ' + e.message;
+  }
+}
+
+// ===== Dependency tools (system) =====
+async function checkDependencies() {
+  const status = document.getElementById('dependencyStatus');
+  status.style.display='block'; status.innerHTML='🔍 Kontroluji systémové závislosti...';
+  const r = await fetch('/api/system/check', {method:'POST'}); const d = await r.json();
+  if (d.success) {
+    const sys=d.system_status;
+    let html = `<div style="font-weight:bold;margin-bottom:8px;">🎯 Stav systému: ${sys.status}</div>`;
+    html += `<div>Python 3.12: ${sys.python312?.available?'✅':'❌'} PyTorch CUDA: ${sys.python312?.pytorch_cuda?'✅':'❌'}</div>`;
+    html += `<div>Python 3.13: ${sys.python313?.available?'✅':'❌'} llama-cpp CUDA: ${sys.python313?.llamacpp_cuda?'✅':'❌'}</div>`;
+    html += `<div>GPU: ${sys.gpu_info?.nvidia ? (sys.gpu_info.device_name + ' (' + sys.gpu_info.vram_gb + 'GB)') : '❌ Nedostupná'}</div>`;
+    if (sys.recommendations?.length>0){ html += '<div style="color:#e74c3c;margin-top:8px;">Doporučení:</div>'; sys.recommendations.forEach(rec=> html += `<div>• ${rec.description}</div>`); }
+    status.innerHTML = html;
+  } else { status.innerHTML = '❌ Kontrola selhala: ' + d.error; }
+}
+async function installDependencies() {
+  const status = document.getElementById('dependencyStatus');
+  status.style.display='block'; status.innerHTML='⚡ Instaluji chybějící závislosti... (může trvat několik minut)';
+  const r = await fetch('/api/system/install-missing', {method:'POST'}); const d = await r.json();
+  if (d.success) {
+    if (d.results?.length>0) {
+      let html='<div style="font-weight:bold;margin-bottom:8px;">📦 Výsledky instalace:</div>';
+      d.results.forEach(res=> html += `<div>${res.success?'✅':'❌'} ${res.command}</div>`);
+      status.innerHTML = html; push('assistant','Automatická instalace dokončena! Restartujte server pro aktivaci změn.');
+    } else { status.innerHTML = '✅ Všechny závislosti jsou již nainstalovány!'; }
+  } else { status.innerHTML = '❌ Instalace selhala: ' + d.error; }
+}
+async function debugPyTorch() {
+  const status = document.getElementById('dependencyStatus');
+  status.style.display='block'; status.innerHTML='🔧 Spouštím PyTorch diagnostiku...';
+  const r = await fetch('/api/pytorch/debug', {method:'POST'}); const d = await r.json();
+  status.innerHTML = d.ok ? ('<pre style="white-space:pre-wrap;font-size:10px;">' + d.output + '</pre>') : ('❌ Debug selhal: ' + d.error);
+}
+async function forceFix() {
+  const status = document.getElementById('dependencyStatus');
+  status.style.display='block'; status.innerHTML='💥 Provádím agresivní opravu PyTorch... (může trvat několik minut)';
+  const r = await fetch('/api/pytorch/force-fix', {method:'POST'}); const d = await r.json();
+  status.innerHTML = d.ok ? ('<pre style="white-space:pre-wrap;font-size:10px;">' + d.output + '</pre>') : ('❌ Oprava selhala: ' + d.error);
+  if (d.ok) push('assistant','Agresivní oprava dokončena! Restartujte server pro aktivaci změn.');
+}
+
+// ===== UI helpery =====
+function push(role, content, scroll = true) {
+  const m = document.getElementById('msgs');
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  const t = document.createElement('div'); t.className='tag'; t.textContent = role==='user'?'Uživatel':'Virgil';
+  const b = document.createElement('div'); b.textContent = content;
+  d.appendChild(t); d.appendChild(b); m.appendChild(d);
+  if (scroll) m.scrollTop = m.scrollHeight;
+  return d;
+}
+
+// ===== Init =====
+loadModels();
+loadSettings();
+loadSessions();
+push('assistant','Vítejte ve Virgil Tripack v1.6! 🎉 Nové: Nastavení modelu (styl, režim, délka, opakování, stabilita, jazyk). Uložte a vyzkoušejte chování modelu dle vašich preferencí.');
+</script>
+</body>
+</html>
